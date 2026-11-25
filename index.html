@@ -1542,6 +1542,16 @@
     [data-layout="focus"] .missed-inline { display: flex; }
     [data-layout="focus"] .tip-inline { display: block; }
 
+    /* Keyboard off (layouts A and C): a scrolling prompt may grow into the room the keyboard leaves, down to the
+       bottom of the window. Only its max-height grows, so a prompt that already fits keeps its size.
+       The chrome is everything above and below the prompt, measured; holiday themes add their light strip. */
+    :root { --prompt-chrome: 347px; --festive-top: 0px; }
+    :root[data-layout="focus"] { --prompt-chrome: 399px; }
+    :root[data-festive] { --festive-top: 28px; }
+    :root[data-festive="pixel"] { --festive-top: 6px; }
+    [data-keyboard="off"]:not([data-layout="dock"]) :is(.prompt.prose, .prompt.long) { max-height: max(12rem, calc(100vh - var(--prompt-chrome) - var(--festive-top))); }
+    [data-keyboard="off"]:not([data-layout="dock"]) .prompt.code { max-height: max(clamp(14rem, 46vh, 26rem), calc(100vh - var(--prompt-chrome) - var(--festive-top))); }
+
     /* Profiles: an avatar button in the top bar opens the profile switcher */
     .profile-menu { position: relative; }
     .avatar {
@@ -6297,6 +6307,7 @@ jobs:
       highlighted = [];
       keyboardFigure.hidden = !settings.keyboard;
       fingerGuide.hidden = !settings.keyboard;
+      document.documentElement.dataset.keyboard = settings.keyboard ? "on" : "off";
       keyboardButton.setAttribute("aria-checked", String(settings.keyboard));
       hintButton.setAttribute("aria-checked", String(settings.hints));
       hintButton.disabled = !settings.keyboard;
