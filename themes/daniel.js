@@ -497,10 +497,118 @@ function pixelSurprise(name, cheer) {
   surpriseTimer = setTimeout(() => stage.replaceChildren(), 12000 / sceneSpeed);
 }
 
+// ---- Slot machine keys ------------------------------------------------------------------------
+// After a typo-free finish, three neighbouring letter keys spin like the reels of a slot machine, stop one
+// at a time, hold, and roll on back to their letters. About one finish in three is three of a kind and the
+// keys light up; every fifth flawless finish in a row is a jackpot of golden D coins.
+const slotSymbols = ["coin", "gem", "heart", "star", "apple", "cake", "slime", "pig", "diamondore"];
+const slotRows = ["qwertyuiop", "asdfghjkl", "zxcvbnm"];
+let slotRun = null;
+
+// Fills a reel with a strip of faces and rolls it downward from `from` to `to`: a small pull back, a fast spin,
+// a braking run that overshoots a little, and a settle. A one-character face is the key's own letter;
+// any other face names a sprite.
+function rollReel(reel, from, to, duration, delay = 0) {
+  const windup = Math.min(90, duration * .07), settle = Math.min(160, duration * .12), brake = Math.min(480, duration * .4);
+  const speed = .02; // cells per millisecond at full spin
+  const travel = Math.max(2, Math.round(speed * (duration - windup - settle - brake) + speed * brake / 3));
+  const faces = [to, ...Array.from({ length: travel - 1 }, () => pick(slotSymbols)), from];
+  const strip = element("span", "slot-strip");
+  strip.style.height = `${faces.length * 100}%`;
+  strip.append(...faces.map((face) => {
+    const cell = element("span", "slot-cell");
+    cell.append(face.length === 1 ? element("span", "slot-letter", face) : pixelSprite(face, 1));
+    return cell;
+  }));
+  reel.replaceChildren(strip);
+  // `moved` is how many cells the strip has rolled; the strip's own height is faces.length cells.
+  const at = (moved) => ({ transform: `translateY(${(-(travel - moved) / faces.length * 100).toFixed(3)}%)` });
+  const brakeFrom = travel - speed * brake / 3;
+  return strip.animate([
+    { ...at(0), easing: "ease-out" },
+    { ...at(-.12), offset: windup / duration, easing: "linear" },
+    { ...at(brakeFrom), offset: (duration - settle - brake) / duration, easing: "cubic-bezier(.33, 1, .68, 1)" },
+    { ...at(travel + .14), offset: (duration - settle) / duration, easing: "ease-in-out" },
+    at(travel)
+  ], { duration, delay, fill: "both" });
+}
+
+function clearSlots() {
+  if (!slotRun) return;
+  slotRun.timers.forEach(clearTimeout);
+  slotRun.animations.forEach((animation) => animation.cancel());
+  for (const key of slotRun.keys) {
+    key.classList.remove("slot-spin", "slot-win");
+    key.querySelectorAll(".slot-reel, .slot-bubble").forEach((node) => node.remove());
+  }
+  slotRun = null;
+}
+
+// Rolls the reels back to their letters. `quick` is for a new exercise starting while they still show symbols.
+function rollSlotsBack(run, quick = false) {
+  if (slotRun !== run || run.rolling) return;
+  run.rolling = true;
+  run.timers.forEach(clearTimeout);
+  run.animations.forEach((animation) => animation.cancel());
+  run.animations = run.keys.map((key, index) => {
+    key.classList.remove("slot-win");
+    key.querySelector(".slot-bubble")?.remove();
+    const reel = key.querySelector(".slot-reel");
+    reel.classList.add("fading");
+    return rollReel(reel, run.faces[index], run.letters[index], quick ? 260 : 700, quick ? 0 : index * 150);
+  });
+  Promise.all(run.animations.map((animation) => animation.finished)).then(() => {
+    if (slotRun === run) clearSlots();
+  }, () => {});
+}
+
+function spinSlotKeys(jackpot = false) {
+  if (settings.festive !== "pixel" || matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  if (keyboardFigure.hidden || keyboard.getClientRects().length === 0) return;
+  clearSlots();
+  const row = pick(slotRows);
+  const start = Math.floor(Math.random() * (row.length - 2));
+  const keys = [...row.slice(start, start + 3)].map((letter) => keyMap.get(letter).key);
+  const triple = jackpot || chance(.3);
+  let faces = Array.from({ length: 3 }, () => pick(slotSymbols));
+  if (triple) faces = Array(3).fill(jackpot ? "dcoin" : faces[0]);
+  else if (faces[0] === faces[1] && faces[1] === faces[2]) faces[2] = pick(slotSymbols.filter((symbol) => symbol !== faces[0]));
+  const run = { keys, faces, letters: keys.map((key) => key.querySelector(".base").textContent), timers: [], animations: [], rolling: false };
+  slotRun = run;
+  const stops = [1300, 1750, 2200];
+  run.animations = keys.map((key, index) => {
+    const reel = element("span", "slot-reel");
+    key.classList.add("slot-spin");
+    key.append(reel);
+    // Each reel clunks as it lands.
+    run.timers.push(setTimeout(() => {
+      if (settings.sound && soundContext()) playPress(" ");
+    }, stops[index] - 160));
+    return rollReel(reel, run.letters[index], faces[index], stops[index]);
+  });
+  const settled = stops.at(-1) + 60;
+  const nearMiss = !triple && faces[0] === faces[1];
+  if (triple || nearMiss) {
+    run.timers.push(setTimeout(() => {
+      if (triple) keys.forEach((key) => key.classList.add("slot-win"));
+      const line = jackpot ? "JACKPOT!" : triple ? pick(["THREE OF A KIND!", "WINNER!", "TRIPLE!", "BIG WIN!"]) : "SO CLOSE!";
+      keys[1].append(element("span", "surprise-bubble slot-bubble", line));
+    }, settled));
+  }
+  run.timers.push(setTimeout(() => rollSlotsBack(run), settled + (triple ? 2600 : nearMiss ? 1800 : 1400)));
+}
+
+// A new exercise hides the result banner; any reels still showing symbols roll straight back to their letters.
+new MutationObserver(() => {
+  if (resultBanner.hidden && slotRun) rollSlotsBack(slotRun, true);
+}).observe(resultBanner, { attributes: true, attributeFilter: ["hidden"] });
+
 // Counts typo-free finishes in a row (this session) and plays a surprise for each one.
 function noteFinish(flawless) {
   flawlessStreak = flawless ? flawlessStreak + 1 : 0;
-  if (flawless) pixelSurprise();
+  if (!flawless) return;
+  pixelSurprise();
+  spinSlotKeys(flawlessStreak % 5 === 0);
 }
 
 // The block world theme has no button: typing "daniel" anywhere turns it on, and typing it again turns it off.
