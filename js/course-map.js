@@ -186,7 +186,9 @@ function renderLibrary() {
   const target = next ?? (following && (recommendedDrill(following) ?? following.path[0]));
   continueButton.hidden = !target;
   continueButton.dataset.drill = target?.id ?? "";
-  if (next) get("continue-drill-label").textContent = `${next === current ? "Resume" : "Continue with"} ${drillLabel(next)}`;
+  // "Start" until the lesson has a finished drill, "Resume" where you left off, "Continue with" after a jump.
+  const nextVerb = next !== current ? "Continue with" : next.lesson.list.some(isDone) ? "Resume" : "Start";
+  if (next) get("continue-drill-label").textContent = `${nextVerb} ${drillLabel(next)}`;
   else if (following) get("continue-drill-label").textContent = `Start the ${following.name} course`;
   get("close-library-label").textContent = settings.view === "course"
     ? `Back to ${drillLabel(current)}`

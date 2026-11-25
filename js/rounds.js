@@ -173,13 +173,17 @@ function startRound(moveFocus = true) {
   renderStats();
   updateTypoHelp();
   renderMisses();
-  renderKeyboard();
-  if (drill) renderProgressCard();
-  // A new profile first chooses between the basics and a focus.
+  // A new profile first chooses between the basics and a focus. Until then Return starts the basics, there is
+  // nothing to reset, and the keyboard shows no next key.
   const welcoming = !!drill && !settings.welcomed;
   welcomePanel.hidden = !welcoming;
+  newRound.hidden = welcoming;
+  document.querySelector(".shortcuts").classList.toggle("welcoming", welcoming);
+  renderKeyboard();
+  if (drill) renderProgressCard();
   if (welcoming) {
     typingArea.hidden = true;
+    get("enter-hint").textContent = "start the basics";
     setStatus("Choose where to start.");
     if (moveFocus) welcomePanel.focus({ preventScroll: true });
     return;
@@ -299,7 +303,7 @@ function renderKeyboard() {
 
   const target = round.characters[round.position];
   const entry = keyMap.get(target);
-  if (!settings.hints || !entry || round.endedAt !== null) {
+  if (!settings.hints || !entry || round.endedAt !== null || !welcomePanel.hidden) {
     fingerGuide.textContent = "Find the raised marks on F and J to reset your hands.";
     return;
   }

@@ -107,7 +107,7 @@
 :root[data-festive="pixel"] .card:not(.keyboard-card), :root[data-festive="pixel"]:not([data-layout="focus"]) .keyboard-card { border: 2px solid var(--pixel-edge); }
 :root[data-festive="pixel"] .button:not(.primary):not(.ghost) { box-shadow: inset 0 -3px 0 rgb(0 0 0 / 12%); }
 :root[data-festive="pixel"] .button.primary { box-shadow: inset 0 -4px 0 var(--accent-shadow); }
-:root[data-festive="pixel"] :is(.brand, .page-title, .card-title, .result-title, .stat dd, .result-unit) { font-family: "Pixelify Sans", var(--mono); }
+:root[data-festive="pixel"] :is(.brand, .page-title, .card-title, .result-title, .stat dd, .result-unit, .map-title, .welcome-title) { font-family: "Pixelify Sans", var(--mono); }
 :root[data-festive="pixel"] :is(.festive-lights, .festive-bokeh) { display: none; }
 .pixel-icon { width: 26px; height: 20px; flex: none; }
 

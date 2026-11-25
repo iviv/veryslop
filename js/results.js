@@ -266,8 +266,8 @@ function showResults() {
   get("result-line").textContent = line;
 
   // Accuracy shows green at a pass and red below it on checkpoints; lesson drills only get the green.
-  const tone = !drill ? "" : accuracy >= passMark ? "good" : drill.checkpoint ? "short" : "";
-  const figures = [[`${accuracy}%`, "accuracy", tone]];
+  const accuracyTone = !drill ? "" : accuracy >= passMark ? "good" : drill.checkpoint ? "short" : "";
+  const figures = [[`${accuracy}%`, "accuracy", accuracyTone]];
   if (wpm !== null) figures.push([String(wpm), "wpm", ""]);
   figures.push([formatTime(duration), "time", ""]);
   figures.push([String(round.mistakes), round.mistakes === 1 ? "typo" : "typos", ""]);

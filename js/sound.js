@@ -6,7 +6,6 @@
 // as the damper meets the bottom, with a faint touch of keycap, and a release is a soft low puff. Each press
 // varies a little in pitch and level, so a run of keys sounds like typing rather than a metronome, and Space
 // and Return sound deeper, like the bigger keys they are. Sounds stay off until the Sound switch turns them on.
-// sound-demo.html, next to index.html, plays this sound beside other presets for comparison.
 
 const keySound = { context: null, out: null, noise: null, soften: null, wet: null, down: new Map() };
 
@@ -92,52 +91,20 @@ function noiseBurst(at, { frequency, q, level, decay, attack = 0.0015, type = "b
   source.start(at, Math.random() * 0.15, decay + 0.01);
 }
 
-// Soft saturation curves, one per amount of drive: they round the tone off and add overtones.
-const driveCurves = new Map();
-function driveCurve(drive) {
-  if (!driveCurves.has(drive)) {
-    const curve = new Float32Array(1024);
-    for (let index = 0; index < curve.length; index++) {
-      const x = index / (curve.length - 1) * 2 - 1;
-      curve[index] = Math.tanh(drive * x) / Math.tanh(drive);
-    }
-    driveCurves.set(drive, curve);
-  }
-  return driveCurves.get(drive);
-}
-
-// A short falling tone: the body of the key reaching the bottom. `drop` is how far the pitch falls,
-// `harmonic` adds a tone an octave up, and `drive` saturates the body. The octave and the overtones are what
-// let a low thud come through laptop speakers, which play little below about 150 Hz.
-function thock(at, { frequency, level, decay, attack = 0.003, drop = 0.62, harmonic = 0, drive = 0 }) {
+// A short falling tone: the body of the key reaching the bottom; `drop` is how far the pitch falls.
+function thock(at, { frequency, level, decay, attack = 0.003, drop = 0.62 }) {
   const { context, out } = keySound;
+  const tone = context.createOscillator();
   const start = vary(frequency, 0.06);
-  const body = context.createGain();
-  const tones = [[1, 1], [2, harmonic]].filter(([, share]) => share > 0).map(([multiple, share]) => {
-    const tone = context.createOscillator();
-    tone.frequency.setValueAtTime(start * multiple, at);
-    tone.frequency.exponentialRampToValueAtTime(start * multiple * drop, at + decay);
-    const mix = context.createGain();
-    mix.gain.value = share;
-    tone.connect(mix).connect(body);
-    return tone;
-  });
-  let shaped = body;
-  if (drive > 0) {
-    const shaper = context.createWaveShaper();
-    shaper.curve = driveCurve(drive);
-    shaper.oversample = "2x";
-    shaped = body.connect(shaper);
-  }
+  tone.frequency.setValueAtTime(start, at);
+  tone.frequency.exponentialRampToValueAtTime(start * drop, at + decay);
   const gain = context.createGain();
   gain.gain.setValueAtTime(0, at);
   gain.gain.linearRampToValueAtTime(vary(level, 0.15), at + attack);
   gain.gain.exponentialRampToValueAtTime(0.0001, at + decay);
-  shaped.connect(gain).connect(out);
-  for (const tone of tones) {
-    tone.start(at);
-    tone.stop(at + decay + 0.02);
-  }
+  tone.connect(gain).connect(out);
+  tone.start(at);
+  tone.stop(at + decay + 0.02);
 }
 
 const soundProfile = (key) => (key === " " || key === "Enter" ? switchSounds.wide : switchSounds.key);
