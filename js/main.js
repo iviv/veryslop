@@ -226,6 +226,14 @@ hintButton.addEventListener("click", () => {
   renderKeyboard();
   typingArea.focus({ preventScroll: true });
 });
+soundButton.addEventListener("click", () => {
+  settings.sound = !settings.sound;
+  saveSettings();
+  if (settings.sound) previewKeySound();
+  renderKeyboard();
+  typingArea.focus({ preventScroll: true });
+});
+document.addEventListener("keyup", keyReleaseSound);
 keyboardButton.addEventListener("click", () => {
   settings.keyboard = !settings.keyboard;
   saveSettings();
@@ -257,6 +265,7 @@ document.addEventListener("keydown", (event) => {
   if (event.key === "Backspace" && (event.altKey || event.metaKey) && !event.ctrlKey && !event.defaultPrevented && !libraryOpen
     && round.endedAt === null && round.pending.length > 0 && !event.target.closest("input, select, textarea, [contenteditable]")) {
     event.preventDefault();
+    keyPressSound(event);
     handleDelete(true);
     return;
   }
@@ -331,6 +340,7 @@ document.addEventListener("keydown", (event) => {
   if (event.key === "Backspace") {
     if (round.pending.length > 0) {
       event.preventDefault();
+      keyPressSound(event);
       handleDelete(false);
     }
     return;
@@ -340,6 +350,7 @@ document.addEventListener("keydown", (event) => {
     event.preventDefault();
     if (settingsOpen) setSettingsOpen(false);
     if (document.activeElement !== typingArea) typingArea.focus({ preventScroll: true });
+    keyPressSound(event);
     if (!event.repeat) handleAttempt("\n");
     return;
   }
@@ -347,6 +358,7 @@ document.addEventListener("keydown", (event) => {
   event.preventDefault();
   if (settingsOpen) setSettingsOpen(false);
   if (document.activeElement !== typingArea) typingArea.focus({ preventScroll: true });
+  keyPressSound(event);
   if (!event.repeat) handleAttempt(event.key);
 });
 

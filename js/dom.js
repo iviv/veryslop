@@ -41,6 +41,7 @@ const hintButton = get("toggle-hints");
 const fingerColorButton = get("toggle-finger-colors");
 const typoHandlingButtons = [...document.querySelectorAll("[data-typo-handling]")];
 const keyboardButton = get("toggle-keyboard");
+const soundButton = get("toggle-sound");
 const themeButton = get("toggle-theme");
 const festiveButton = get("toggle-festive");
 const christmasButton = get("toggle-christmas");

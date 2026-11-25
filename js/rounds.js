@@ -283,6 +283,7 @@ function renderKeyboard() {
   hintButton.setAttribute("aria-checked", String(settings.hints));
   hintButton.disabled = !settings.keyboard;
   fingerColorButton.setAttribute("aria-checked", String(settings.fingerColors));
+  soundButton.setAttribute("aria-checked", String(settings.sound));
   fingerColorButton.disabled = !settings.keyboard;
   keyboard.classList.toggle("finger-colors", settings.fingerColors);
   if (!settings.keyboard) return;

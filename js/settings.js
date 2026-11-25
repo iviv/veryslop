@@ -36,7 +36,7 @@ const sprints = [
 const sprintById = new Map(sprints.map((sprint) => [sprint.id, sprint]));
 const formatSeconds = (milliseconds, digits = 2) => (milliseconds / 1000).toFixed(digits);
 const settings = {
-  version: 5, focus: "home", view: "course", drills: {}, drillLength: 180, done: [], welcomed: false,
+  version: 5, focus: "home", view: "course", drills: {}, drillLength: 180, done: [], welcomed: false, sound: false,
   resetModes: { course: "pass", practice: "streak", text: "off", fun: "off" }, typoLimit: 5, sprint: "alphabet", sprintBest: {}, sprintLast: {},
   practice: {}, textSource: {}, passageLength: "medium", hints: true, fingerColors: false, correction: false, keyboard: true, theme: null, festive: null, layout: "sidebar", keyStats: {}, best: {}, history: []
 };
@@ -129,6 +129,7 @@ if (typeof saved?.hints === "boolean") settings.hints = saved.hints;
 if (typeof saved?.fingerColors === "boolean") settings.fingerColors = saved.fingerColors;
 if (typeof saved?.correction === "boolean") settings.correction = saved.correction;
 if (typeof saved?.keyboard === "boolean") settings.keyboard = saved.keyboard;
+if (typeof saved?.sound === "boolean") settings.sound = saved.sound;
 if (saved?.theme === "light" || saved?.theme === "dark") settings.theme = saved.theme;
 // Older saves stored the Thanksgiving theme as true.
 settings.festive = saved?.festive === true ? "thanksgiving" : festiveThemes.includes(saved?.festive) ? saved.festive : null;
