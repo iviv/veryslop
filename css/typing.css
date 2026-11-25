@@ -1,0 +1,144 @@
+/* Typing card */
+.practice { overflow: hidden; box-shadow: var(--card-shadow); transition: border-color .15s, box-shadow .15s; }
+.practice:has(.typing-area:focus) { border-color: var(--focus-line); box-shadow: 0 0 0 3px var(--focus-ring), var(--card-shadow); }
+.stats-strip { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); margin: 0; border-bottom: 1px solid var(--line-2); }
+.stat { min-width: 0; padding: 14px 22px; }
+.stat:not([hidden]) ~ .stat { border-left: 1px solid var(--line-2); }
+.stat dt { font-size: 12.5px; font-weight: 500; color: var(--muted); }
+.stat dd { margin: 2px 0 0; font: 600 22px/1.3 var(--mono); letter-spacing: -.02em; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.stat-wpm { background: var(--wpm-bg); }
+.stat-wpm dt { color: var(--accent-text); }
+.stat-wpm dd { color: var(--accent-ink); }
+
+.typing-area { padding: clamp(20px, 3.4vw, 40px) clamp(18px, 3.4vw, 40px) 24px; cursor: text; }
+.typing-area:focus { outline: none; }
+.prompt {
+  display: flex; flex-wrap: wrap; justify-content: center; align-content: center; row-gap: 10px;
+  min-height: 150px; margin-bottom: 24px;
+  font: 500 clamp(1.6rem, 3.6vw, 2.5rem)/1.45 var(--mono);
+  font-variant-ligatures: none; user-select: none;
+}
+.prompt.grouped { column-gap: .7em; }
+.prompt.short { min-height: 110px; font-size: clamp(1.9rem, 6vw, 3.4rem); }
+.prompt.long {
+  justify-content: flex-start; align-content: flex-start; min-height: 0; max-height: clamp(8.5rem, 27vh, 12.5rem);
+  overflow-y: auto; overscroll-behavior: contain; scrollbar-gutter: stable;
+  font-size: clamp(1.3rem, 2.4vw, 1.75rem);
+}
+.prompt.prose {
+  display: block; min-height: 0; max-height: clamp(12rem, 42vh, 26rem); overflow-y: auto;
+  overscroll-behavior: contain; scrollbar-gutter: stable; padding-inline-end: 6px;
+  font-size: clamp(1rem, 1.6vw, 1.3rem); font-weight: 450; line-height: 1.85;
+}
+.chunk { display: inline-flex; white-space: pre; }
+.prompt.prose .chunk { max-width: 100%; flex-wrap: wrap; }
+.character { display: inline-block; width: 1.25ch; text-align: center; border-radius: 8px; }
+.prompt.prose .character { width: 1ch; border-radius: 4px; }
+.prompt.short .character { width: 1.4ch; }
+.character.space { position: relative; width: .85ch; }
+.character.space::before { content: "·"; position: absolute; inset: 0; visibility: hidden; }
+.character.space.current::before, .chunk:last-child .character.space:last-child::before { visibility: visible; }
+/* Outside book passages, every space still to type shows as a faint dot, so each one reads as a key to
+   press; the one at the cursor is full strength, and typed ones clear. */
+.prompt:not(.prose) .character.space:not(.done)::before { visibility: visible; color: var(--muted-2); opacity: .5; }
+.prompt:not(.prose) .character.space.current::before { color: inherit; opacity: 1; }
+.character.space.done::before { visibility: hidden; }
+.character.done { color: var(--typed); }
+.character.current { color: var(--accent-ink); background: var(--accent-soft); box-shadow: inset 0 -3px 0 var(--accent); }
+.character.current.wrong { color: var(--danger); background: var(--danger-soft); box-shadow: inset 0 -3px 0 var(--danger-strong); }
+/* Typos waiting to be deleted, shown at the cursor */
+.character.extra { color: var(--danger); background: var(--danger-soft); text-decoration: line-through; text-decoration-thickness: 2px; }
+
+/* Code: laid out like an editor, with line numbers, real indentation and syntax colors. Long lines scroll
+   sideways rather than wrap. */
+:root {
+  --code-keyword: #6a2fc9; --code-string: #12795a; --code-comment: #7a7690; --code-number: #a2520a;
+  --code-fn: #1f5fbf; --code-prop: #9a2f7d; --code-tag: #b3264f;
+}
+:root[data-theme="dark"] {
+  --code-keyword: #c3b3ff; --code-string: #7fd6a8; --code-comment: #8f8ba3; --code-number: #f0b37a;
+  --code-fn: #8ab8ff; --code-prop: #f0a6d8; --code-tag: #ff9dba;
+}
+.prompt.code {
+  display: block; min-height: 0; max-height: clamp(14rem, 46vh, 26rem); overflow: auto; overscroll-behavior: contain;
+  padding: 12px 14px 12px 6px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface-2);
+  font-size: clamp(.95rem, 1.25vw, 1.1rem); font-weight: 450; line-height: 1.75; text-align: left;
+  counter-reset: code-line; scroll-padding-block: 3.5em; scroll-padding-inline: 4ch;
+}
+/* pre, not nowrap: a cell holding only a space must keep its height, or its dot and cursor vanish. */
+.code-line { min-height: 1.75em; white-space: pre; }
+.code-line::before {
+  content: counter(code-line); counter-increment: code-line; display: inline-block; width: 3ch; margin-right: 2ch;
+  color: var(--muted-2); opacity: .55; text-align: right; font-size: .85em;
+}
+.prompt.code .character { width: 1ch; border-radius: 3px; }
+.prompt.code .character.newline { width: auto; min-width: 1ch; margin-left: .35ch; padding: 0 .1em; color: var(--muted-2); opacity: .45; font-size: .8em; }
+.prompt.code .character.newline.current, .prompt.code .character.newline.wrong { opacity: 1; }
+.tok-keyword { color: var(--code-keyword); }
+.tok-string { color: var(--code-string); }
+.tok-comment { color: var(--code-comment); font-style: italic; }
+.tok-number { color: var(--code-number); }
+.tok-fn { color: var(--code-fn); }
+.tok-prop { color: var(--code-prop); }
+.tok-tag { color: var(--code-tag); }
+.prompt.code .character.done { color: var(--typed); opacity: .75; }
+.prompt.code .character.newline.done { opacity: .3; }
+
+.progress-row { display: flex; align-items: center; gap: 14px; }
+progress { flex: 1; min-width: 0; height: 6px; appearance: none; border: 0; border-radius: 6px; background: var(--track); color: var(--accent); overflow: hidden; }
+progress::-webkit-progress-bar { background: var(--track); border-radius: 6px; }
+progress::-webkit-progress-value { background: var(--accent); border-radius: 6px; }
+progress::-moz-progress-bar { background: var(--accent); border-radius: 6px; }
+.counter { font: 13px var(--mono); color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+.card-footer { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 20px; padding: 10px 14px 10px 22px; border-top: 1px solid var(--line-2); background: var(--surface-2); }
+.status { flex: 1 1 220px; min-width: 0; display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 500; color: var(--ink-2); }
+.status::before { content: ""; flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--muted-2); }
+.status.active::before { background: var(--accent); }
+.status.error { color: var(--danger); }
+.status.error::before { background: var(--danger-strong); }
+.status.complete { color: var(--success); font-weight: 650; }
+.status.complete::before { background: var(--success); }
+.footer-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 18px; }
+.shortcuts { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--muted); white-space: nowrap; }
+.shortcuts kbd { padding: 2px 7px; border: 1px solid var(--control-line); border-bottom-width: 2px; border-radius: 6px; background: var(--control-bg); color: var(--ink-2); font: 12px var(--sans); }
+.shortcut-gap { width: 10px; }
+
+/* Results after each attempt: a heading, one line of encouragement, the numbers, one tip, and what comes next */
+.result-banner { padding: 26px 32px 22px; }
+.result-title { font-size: 22px; font-weight: 700; letter-spacing: -.02em; line-height: 1.25; }
+.result-line { margin-top: 4px; font-size: 15px; color: var(--ink-2); }
+.result-figures { display: flex; flex-wrap: wrap; gap: 10px 40px; margin: 18px 0 0; }
+.result-figures div { display: flex; flex-direction: column-reverse; }
+.result-figures dd { margin: 0; font: 600 28px/1.1 var(--mono); letter-spacing: -.02em; font-variant-numeric: tabular-nums; color: var(--ink); }
+.result-figures dt { margin-top: 4px; font-size: 12.5px; color: var(--muted); }
+.result-figures .good dd { color: var(--success); }
+.result-figures .short dd { color: var(--danger); }
+.result-tip { margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--line-2); font-size: 14px; color: var(--ink-2); }
+.result-tip strong { color: var(--ink); font-weight: 600; }
+.result-footer { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 20px; margin-top: 18px; }
+.result-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.result-actions kbd { padding: 1px 6px; border-radius: 5px; background: color-mix(in srgb, currentColor 18%, transparent); font: 500 11.5px var(--sans); }
+.result-progress { font-size: 13px; color: var(--muted); }
+.result-banner:focus { outline: none; }
+
+.result-banner.sprint .result-title { display: flex; align-items: baseline; gap: 10px; font: 600 64px/1 var(--mono); letter-spacing: -.04em; font-variant-numeric: tabular-nums; color: var(--accent-ink); }
+.result-unit { font: 600 18px var(--sans); letter-spacing: 0; color: var(--muted); }
+.result-banner.sprint .result-line { margin-top: 12px; }
+.result-banner.sprint :is(.result-figures, .result-tip, .result-progress) { display: none; }
+.result-progress strong { color: var(--ink-2); font-weight: 600; }
+
+/* First run: start with the basics, or choose a focus */
+.welcome { padding: 26px 32px 28px; }
+.welcome:focus { outline: none; }
+.welcome-title { font-size: 22px; font-weight: 700; letter-spacing: -.02em; }
+.welcome-options { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin-top: 18px; }
+.welcome-option { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; padding: 18px 20px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface-2); }
+.welcome-option h3 { font-size: 16px; font-weight: 650; }
+.welcome-option p { font-size: 14px; color: var(--ink-2); }
+.welcome-option .button { margin-top: auto; }
+.welcome-option kbd { padding: 1px 6px; border-radius: 5px; background: color-mix(in srgb, currentColor 18%, transparent); font: 500 11.5px var(--sans); }
+.welcome-path { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 6px; padding: 0; list-style: none; counter-reset: step; }
+.welcome-path li { counter-increment: step; padding: 3px 10px; border-radius: 999px; background: var(--accent-soft); color: var(--accent-ink); font-size: 12.5px; font-weight: 600; }
+.welcome-path li::before { content: counter(step) ". "; opacity: .7; }
+@media (max-width: 720px) { .welcome-options { grid-template-columns: minmax(0, 1fr); } }

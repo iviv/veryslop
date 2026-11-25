@@ -1,0 +1,96 @@
+/* Keyboard */
+.keyboard-card { padding: 18px 24px 22px; }
+.keyboard-header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 20px; }
+.keyboard-heading { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 18px; min-width: 0; }
+.finger-guide { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; font-size: 14px; color: var(--muted); }
+.finger-guide strong { color: var(--ink); font-weight: 600; }
+.guide-key { display: inline-grid; place-items: center; min-width: 30px; height: 30px; padding: 0 7px; border-radius: 8px; background: var(--accent); color: var(--on-accent); font: 600 15px var(--mono); }
+.wrong-chip { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px 3px 9px; border-radius: 20px; background: var(--danger-soft); color: var(--danger); font-size: 13px; }
+.wrong-chip kbd { font: 600 13px var(--mono); }
+.keyboard-controls { display: flex; align-items: center; gap: 6px; }
+.switch-button { display: inline-flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 8px; border: 0; background: transparent; color: var(--ink-2); font-size: 14px; font-weight: 500; }
+.switch { position: relative; flex: none; width: 34px; height: 20px; border-radius: 20px; background: var(--switch-off); transition: background .15s; }
+.switch::before { content: ""; position: absolute; top: 3px; left: 3px; width: 14px; height: 14px; border-radius: 50%; background: var(--switch-knob); transition: transform .15s; }
+.switch-button[aria-checked="true"] .switch { background: var(--accent); }
+.switch-button[aria-checked="true"] .switch::before { transform: translateX(14px); background: var(--on-accent); }
+
+.keyboard-figure { margin-top: 14px; }
+/* Keys keep their proportions at every width: a key's height follows from its width
+   (4 of the row's 58 columns, less its side gaps) divided by --key-ratio, never from a fixed cap.
+   The keyboard's own max-width is what limits how big it gets. */
+.keyboard {
+  --key-ratio: 1;
+  --key-gap: clamp(1px, .38cqw, 3px);
+  --key-height: calc((100cqw * 4 / 58 - 2 * var(--key-gap)) / var(--key-ratio));
+  container-type: inline-size;
+  width: 100%; margin-inline: auto;
+  display: grid; gap: 0; padding: 10px 7px;
+  border: 1px solid var(--kbd-tray-line); border-radius: 16px; background: var(--kbd-tray);
+}
+.key-row { display: grid; grid-template-columns: repeat(58, minmax(0, 1fr)); }
+/* Space between rows scales with the keys too (the keyboard can't size its own gap in cqw). */
+.key-row + .key-row { margin-top: calc(var(--key-gap) * 5 / 3); }
+.key {
+  position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  min-width: 0; height: var(--key-height); margin: 0 var(--key-gap);
+  border-radius: clamp(4px, 1.05cqw, 8px);
+  background: var(--key-bg); color: var(--key-ink); box-shadow: inset 0 -2px 0 var(--key-shadow);
+  font: 500 clamp(.58rem, 1.9cqw, .92rem)/1 var(--sans);
+}
+.key.number { background: var(--key-number-bg); }
+.key .upper { margin-bottom: .3em; font-size: .74em; color: var(--key-upper); }
+.key[data-zone]::before { content: ""; position: absolute; left: 32%; right: 32%; bottom: clamp(2px, .65cqw, 5px); height: clamp(2px, .38cqw, 3px); border-radius: 3px; background: var(--zone); }
+.key.space-key[data-zone]::before { left: 45%; right: 45%; }
+.key.home::after { content: ""; position: absolute; bottom: clamp(6px, 1.5cqw, 11px); left: calc(50% - 5px); width: 10px; height: 1.5px; border-radius: 2px; background: currentColor; opacity: .6; }
+.key.function { gap: clamp(2px, .6cqw, 5px); padding: 0 3px; font-size: clamp(.46rem, 1.3cqw, .66rem); color: var(--key-muted); }
+.key.function .icon { width: clamp(9px, 2.25cqw, 17px); height: clamp(9px, 2.25cqw, 17px); color: var(--key-ink); stroke-width: 1.7; }
+/* Modifier legends follow M2-and-later MacBooks: the name sits in the bottom corner on the key's own side,
+   and a symbol sits in the opposite top corner. */
+.key.modifier {
+  display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: 1fr 1fr; justify-content: stretch; align-items: stretch;
+  padding: clamp(3px, .75cqw, 6px) clamp(4px, 1.05cqw, 8px);
+  overflow: hidden; color: var(--key-muted); font-size: clamp(.46rem, 1.3cqw, .66rem); white-space: nowrap;
+}
+.mod-top, .mod-bottom { display: flex; min-width: 0; }
+.mod-top { align-items: flex-start; font-size: 1.15em; }
+.mod-bottom { align-items: flex-end; }
+.key.modifier.left .mod-top, .key.modifier.right .mod-bottom { justify-content: flex-end; }
+.key.modifier.right .mod-top, .key.modifier.left .mod-bottom, .key.modifier.caps-lock .mod-top { justify-content: flex-start; }
+.key.modifier .icon { width: 1.3em; height: 1.3em; stroke-width: 1.5; }
+.led { width: clamp(3px, .55cqw, 5px); aspect-ratio: 1; margin-top: 1px; border-radius: 50%; background: var(--key-led); }
+.key.touch-id::after { content: ""; width: 40%; aspect-ratio: 1; border: 1px solid var(--key-muted); border-radius: 50%; opacity: .7; }
+.arrow-stack { display: flex; flex-direction: column; gap: 2px; height: var(--key-height); margin: 0 var(--key-gap); }
+.arrow-stack .key { flex: 1; height: auto; margin: 0; }
+.key.arrow { border-radius: clamp(3px, .7cqw, 5px); color: var(--key-muted); font-size: clamp(.4rem, 1.15cqw, .6rem); }
+.key.arrow-side { align-self: end; height: calc((var(--key-height) - 2px) / 2); }
+/* Phone-sized keyboards: keys stay in proportion, so their legends shrink to fit instead. */
+@container (max-width: 560px) {
+  .fn-label, .key.home::after { display: none; }
+  .key { font-size: max(6px, 2.2cqw); }
+  .key .upper { margin-bottom: .1em; font-size: .8em; }
+  .key.modifier { padding: 1px 2px; font-size: max(5px, 1.5cqw); }
+  .key.function .icon { width: max(7px, 2.25cqw); height: max(7px, 2.25cqw); }
+}
+
+.key.target { background: var(--key-target-bg); color: var(--key-target-ink); box-shadow: inset 0 -2px 0 var(--key-target-shadow), 0 0 0 3px var(--accent-ring); }
+.key.target .upper { color: var(--key-target-upper); }
+.key.target[data-zone]::before { background: var(--key-target-ink); opacity: .45; }
+.key.target.use-shift .upper { font-weight: 800; color: var(--key-target-ink); }
+.key.target.use-shift.shifted .base { opacity: .65; }
+.key.shift-hint { background: var(--key-hint-bg); color: var(--key-hint-ink); box-shadow: inset 0 0 0 1.5px var(--key-hint-line); }
+.key.missed { background: var(--key-missed-bg); color: var(--key-missed-ink); box-shadow: inset 0 -2px 0 var(--key-missed-shadow); }
+.key.missed .upper { color: inherit; }
+
+/* Finger colors: keycaps keep their dark Mac look, mixed with a muted share of their finger's color. */
+.keyboard.finger-colors .key[data-zone]:not(.target, .missed) { background: color-mix(in srgb, var(--zone) 30%, var(--key-bg)); }
+#keyboard-title { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+[data-zone="pinky"] { --zone: var(--f-pinky); }
+[data-zone="ring"] { --zone: var(--f-ring); }
+[data-zone="middle"] { --zone: var(--f-middle); }
+[data-zone="index-left"] { --zone: var(--f-index-left); }
+[data-zone="index-right"] { --zone: var(--f-index-right); }
+[data-zone="thumb"] { --zone: var(--f-thumb); }
+.finger-legend { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 20px; margin-top: 14px; font-size: 13px; color: var(--muted); }
+.legend-item { display: inline-flex; align-items: center; gap: 8px; }
+.swatch { width: 14px; height: 4px; border-radius: 3px; background: var(--zone); }
+.legend-note { margin-left: auto; }

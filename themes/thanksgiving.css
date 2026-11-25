@@ -1,0 +1,127 @@
+/* Thanksgiving theme colors (light and dark). Shared holiday pieces live in festive.css. */
+:root[data-festive="thanksgiving"]:not([data-theme="dark"]) {
+  --bg: #f9f2e9;
+  --topbar: #fffaf4;
+  --surface-2: #fdfaf6;
+  --surface-3: #f4eee7;
+  --line: #ede3d7;
+  --line-2: #f3ece3;
+  --control-line: #e7ddd1;
+  --control-line-hover: #d8ccbe;
+  --hover: #f7f1ea;
+  --track: #f2ebe2;
+  --accent: #bb5116;
+  --accent-hover: #a64813;
+  --accent-text: #ad4a16;
+  --accent-ink: #9a3f10;
+  --accent-soft: #fdefe4;
+  --accent-soft-line: #f6d2b4;
+  --accent-ring: #f8d8bd;
+  --accent-shadow: #8a3b0f;
+  --on-accent: #ffffff;
+  --focus-line: #f2c6a2;
+  --focus-ring: rgb(187 81 22 / 11%);
+  --wpm-bg: #fdf2e8;
+  --kbd-tray: #ebe3d9;
+  --kbd-tray-line: #ddd2c5;
+  --key-number-bg: #47392f;
+  --key-target-bg: #ffc99e;
+  --key-target-ink: #5a2408;
+  --key-target-shadow: #e0985f;
+  --key-target-upper: #7a3510;
+  --key-hint-bg: #4a3326;
+  --key-hint-line: #ffc99e;
+  --key-hint-ink: #ffeadb;
+  --card-shadow: 0 1px 2px rgb(90 50 20 / 5%), 0 12px 32px rgb(120 60 20 / 8%);
+  --festive-backdrop:
+    radial-gradient(120% 70% at 50% -12%, rgb(255 190 110 / 38%), transparent 62%),
+    radial-gradient(60% 55% at -6% 106%, rgb(222 110 40 / 24%), transparent 70%),
+    radial-gradient(60% 55% at 106% 106%, rgb(176 58 40 / 20%), transparent 70%),
+    linear-gradient(#fbf3e8, #f5e6d4);
+  --doodle-ink: #8a5530;
+  --dd-o: #f6b77c;
+  --dd-r: #ec9a86;
+  --dd-y: #f5d27e;
+  --dd-g: #b9c98a;
+  --dd-b: #d9ae86;
+  --dd-p: #c9a3c6;
+  --dd-c: #fff6e6;
+  --doodle-opacity: .42;
+  --float-opacity: .8;
+  --bokeh-opacity: .5;
+  --wire: rgb(98 66 44 / 70%);
+  --bulb-1: #f29a2e;
+  --bulb-2: #e8642c;
+  --bulb-3: #f0bd2e;
+  --leaf-1: #c2410c;
+  --leaf-2: #b7791f;
+  --leaf-3: #9b2c2c;
+  --glow: rgb(244 140 60 / 16%);
+  --flash-glow: rgb(255 190 90 / 55%);
+}
+:root[data-festive="thanksgiving"][data-theme="dark"] {
+  --bg: #120f0d;
+  --topbar: #1a1512;
+  --surface: #1c1714;
+  --surface-2: #1f1a16;
+  --surface-3: #241e1a;
+  --line: #332a24;
+  --line-2: #2a231e;
+  --control-bg: #221c18;
+  --control-line: #3a3029;
+  --control-line-hover: #4a3e35;
+  --hover: #29221d;
+  --input-bg: #15110f;
+  --track: #2a231e;
+  --segment-active-bg: #332a24;
+  --segment-active-line: #3d332b;
+  --dock-bg: #15110f;
+  --accent: #f0893f;
+  --accent-hover: #f59a55;
+  --accent-text: #f5a060;
+  --accent-ink: #ffd0a8;
+  --accent-soft: #3a2416;
+  --accent-soft-line: #5c3820;
+  --accent-ring: #5c3820;
+  --accent-shadow: #c4682a;
+  --on-accent: #2a1206;
+  --focus-line: #5c3820;
+  --focus-ring: rgb(240 137 63 / 13%);
+  --wpm-bg: #2a1c12;
+  --kbd-tray: #0e0b09;
+  --kbd-tray-line: #261f1a;
+  --key-bg: #2a2522;
+  --key-number-bg: #3a2e26;
+  --key-target-bg: #f0893f;
+  --key-target-ink: #2a1206;
+  --key-target-shadow: #c4682a;
+  --key-target-upper: #5a2a0c;
+  --key-hint-bg: #3d2a1c;
+  --key-hint-line: #f0893f;
+  --key-hint-ink: #ffe0c8;
+  --festive-backdrop:
+    radial-gradient(120% 70% at 50% -12%, rgb(255 140 50 / 17%), transparent 62%),
+    radial-gradient(60% 55% at -6% 106%, rgb(210 90 30 / 20%), transparent 70%),
+    radial-gradient(60% 55% at 106% 106%, rgb(160 44 44 / 20%), transparent 70%),
+    linear-gradient(#16100c, #1e140e);
+  --doodle-ink: #e9b98c;
+  --dd-o: #7a4320;
+  --dd-r: #6e2e28;
+  --dd-y: #6e5420;
+  --dd-g: #3e4a28;
+  --dd-b: #5a3e28;
+  --dd-p: #4e3450;
+  --dd-c: #3a2c22;
+  --doodle-opacity: .24;
+  --float-opacity: .55;
+  --bokeh-opacity: .3;
+  --wire: rgb(150 120 96 / 55%);
+  --bulb-1: #ffb347;
+  --bulb-2: #ff7a3d;
+  --bulb-3: #ffd65a;
+  --leaf-1: #e0773a;
+  --leaf-2: #d9a23a;
+  --leaf-3: #c9564a;
+  --glow: rgb(255 140 60 / 12%);
+  --flash-glow: rgb(255 180 80 / 40%);
+}

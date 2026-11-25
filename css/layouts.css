@@ -1,0 +1,75 @@
+/* Layout A: the heading and live stats move into the sidebar */
+[data-layout="sidebar"] .now-card { display: block; }
+.now-card { padding: 16px 18px; }
+.now-card .page-heading { display: block; }
+.now-card .page-title { font-size: 21px; letter-spacing: -.02em; }
+.now-card .page-description { font-size: 13.5px; }
+.now-card .heading-actions { margin-top: 14px; }
+.now-card .heading-actions .button { flex: 1; min-height: 36px; padding: 0 10px; }
+
+/* Layouts B and C: a one-line heading, and the finger legend inline with the keyboard controls */
+:is([data-layout="dock"], [data-layout="focus"]) .page-heading { align-items: center; }
+:is([data-layout="dock"], [data-layout="focus"]) .page-heading-text { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 12px; }
+:is([data-layout="dock"], [data-layout="focus"]) .page-title { order: -1; margin: 0; font-size: 22px; }
+:is([data-layout="dock"], [data-layout="focus"]) .page-description { display: none; }
+:is([data-layout="dock"], [data-layout="focus"]) .heading-actions .button { min-height: 36px; }
+:is([data-layout="dock"], [data-layout="focus"]) .keyboard-card {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas: "heading controls" "keyboard keyboard" "legend tip";
+  align-items: center; gap: 10px 16px;
+}
+:is([data-layout="dock"], [data-layout="focus"]) :is(.keyboard-header, .keyboard-figure) { display: contents; }
+:is([data-layout="dock"], [data-layout="focus"]) .keyboard-heading { grid-area: heading; }
+:is([data-layout="dock"], [data-layout="focus"]) .keyboard-controls { grid-area: controls; }
+:is([data-layout="dock"], [data-layout="focus"]) .keyboard { grid-area: keyboard; }
+:is([data-layout="dock"], [data-layout="focus"]) .finger-legend { grid-area: legend; gap: 6px 14px; margin: 0; font-size: 12px; }
+:is([data-layout="dock"], [data-layout="focus"]) .tip-inline { grid-area: tip; justify-self: end; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+:is([data-layout="dock"], [data-layout="focus"]) :is(.legend-note, #keyboard-title) { display: none; }
+
+/* Layout B: the keyboard is docked to the bottom of the window */
+[data-layout="dock"] .workspace { padding-bottom: calc(var(--dock-h, 360px) - 12px); }
+[data-layout="dock"] .keyboard-card {
+  position: fixed; right: 0; bottom: 0; left: 0; z-index: 10;
+  padding: 8px max(16px, calc((100% - 800px) / 2)) 10px; /* the keyboard's max-width, so the rows line up with it */
+  grid-template-areas: "heading controls" "keyboard keyboard" "legend legend"; /* no inline tip here */
+  border-width: 1px 0 0; border-radius: 0; background: var(--dock-bg); box-shadow: 0 -10px 30px rgb(0 0 0 / 8%);
+}
+[data-layout="dock"] :is(.prompt.prose, .prompt.long, .prompt.code) { max-height: max(5.5rem, calc(100vh - var(--dock-h, 380px) - 295px)); }
+
+/* Layout C: one centered column; settings open in a popover */
+[data-layout="focus"] main.shell { padding-top: 16px; }
+[data-layout="focus"] .workspace { display: block; max-width: 1000px; margin-inline: auto; }
+[data-layout="focus"] .main-column { gap: 12px; }
+[data-layout="focus"] .settings-button { display: inline-flex; }
+[data-layout="focus"] .settings-button[aria-expanded="true"] { border-color: var(--accent-soft-line); background: var(--accent-soft); color: var(--accent-ink); }
+[data-layout="focus"] .sidebar { display: none; }
+[data-layout="focus"] .sidebar.open {
+  position: fixed; top: 62px; right: max(16px, calc((100% - 1176px) / 2)); z-index: 20;
+  display: grid; grid-template-columns: minmax(0, 1fr); width: 330px; max-height: calc(100vh - 78px); overflow-y: auto;
+  padding: 10px; border: 1px solid var(--line); border-radius: 18px; background: var(--bg); box-shadow: 0 18px 50px rgb(0 0 0 / 18%);
+}
+[data-layout="focus"] .sidebar .tip-card { display: none; }
+[data-layout="focus"] .keyboard-card { padding: 0; border: 0; background: transparent; }
+[data-layout="focus"] .missed-inline { display: flex; }
+[data-layout="focus"] .tip-inline { display: block; }
+
+/* Keyboard off (layouts A and C): a scrolling prompt may grow into the room the keyboard leaves, down to the
+   bottom of the window. Only its max-height grows, so a prompt that already fits keeps its size.
+   The chrome is everything above and below the prompt, measured; holiday themes add their light strip. */
+:root { --prompt-chrome: 347px; --festive-top: 0px; }
+:root[data-layout="focus"] { --prompt-chrome: 399px; }
+:root[data-festive] { --festive-top: 28px; }
+:root[data-festive="pixel"] { --festive-top: 6px; }
+[data-keyboard="off"]:not([data-layout="dock"]) :is(.prompt.prose, .prompt.long) { max-height: max(12rem, calc(100vh - var(--prompt-chrome) - var(--festive-top))); }
+[data-keyboard="off"]:not([data-layout="dock"]) .prompt.code { max-height: max(clamp(14rem, 46vh, 26rem), calc(100vh - var(--prompt-chrome) - var(--festive-top))); }
+
+@media (max-width: 720px) {
+  .shell { width: calc(100% - 32px); }
+  main.shell { padding-block: 24px 40px; }
+  .topbar-center { order: 3; width: 100%; }
+  .view-switch { flex: 1; }
+  .view-switch .segment { flex: 1; padding: 0 8px; }
+  .keyboard-card { padding: 16px; }
+  .card-footer { padding-left: 16px; }
+  .legend-note { margin-left: 0; }
+}

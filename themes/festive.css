@@ -1,0 +1,161 @@
+/* Holiday themes. Thanksgiving: warm orange accents, a harvest doodle wallpaper, drifting pumpkins and leaves.
+   Christmas: cranberry and pine, a Christmas doodle wallpaper, slow snowfall. Both share the string lights.
+   Everything moves slowly on purpose, so the page stays calm while you type. */
+
+.festive-layer, .festive-lights { display: none; position: fixed; inset: 0; pointer-events: none; }
+[data-festive] body { isolation: isolate; }
+[data-festive] :is(.festive-layer, .festive-lights) { display: block; }
+.festive-button .icon { stroke-width: 4.6; }
+/* Room at the top of the bar for the lights to hang in; the bar lets the warm backdrop show through a little */
+[data-festive] .topbar { background: color-mix(in srgb, var(--topbar) 82%, transparent); }
+[data-festive] .topbar-inner { padding-block: 40px 8px; }
+:root[data-festive][data-layout="focus"] .sidebar.open { top: 90px; max-height: calc(100vh - 106px); }
+:root[data-festive][data-layout="dock"] :is(.prompt.prose, .prompt.long, .prompt.code) { max-height: max(5.5rem, calc(100vh - var(--dock-h, 380px) - 323px)); }
+
+/* Backdrop: a warm harvest glow, a doodle wallpaper, soft out-of-focus lights, and a few drifting doodles.
+   Pumpkins rise and turn, leaves fall and sway. Negative delays spread them out from the first frame. */
+.festive-layer { z-index: -1; overflow: hidden; background: var(--festive-backdrop); }
+.festive-bokeh {
+  position: absolute; top: 0; left: 0; width: var(--size); height: var(--size); border-radius: 50%;
+  background: radial-gradient(circle closest-side, color-mix(in srgb, var(--c) 60%, transparent), color-mix(in srgb, var(--c) 18%, transparent) 62%, transparent);
+  opacity: var(--bokeh-opacity); transform: translate(var(--x), var(--y));
+}
+/* Hand-drawn doodle wallpaper (one seamless 720px tile), and a few larger doodles drifting in front of it */
+.festive-scene { display: none; position: absolute; inset: 0; }
+:root[data-festive="thanksgiving"] .festive-scene[data-scene="thanksgiving"],
+:root[data-festive="christmas"] .festive-scene[data-scene="christmas"] { display: block; }
+.ds-r { stroke: var(--dd-stripe); stroke-width: 3.2; stroke-linecap: butt; }
+.ds-g { stroke: var(--dd-pine); }
+.ds-c { stroke: var(--dd-icing); stroke-width: 1.8; }
+.festive-doodles { position: absolute; inset: 0; width: 100%; height: 100%; color: var(--doodle-ink); opacity: var(--doodle-opacity); }
+.dd-o { fill: var(--dd-o); }
+.dd-r { fill: var(--dd-r); }
+.dd-y { fill: var(--dd-y); }
+.dd-g { fill: var(--dd-g); }
+.dd-b { fill: var(--dd-b); }
+.dd-p { fill: var(--dd-p); }
+.dd-c { fill: var(--dd-c); }
+.dd-k { fill: currentColor; }
+.dd-text { fill: currentColor; stroke: none; font-family: "Chalkboard SE", "Marker Felt", "Bradley Hand", cursive; font-weight: 600; letter-spacing: .02em; }
+.festive-item {
+  position: absolute; top: 0; left: 0; width: var(--size); height: var(--size); overflow: visible;
+  color: var(--doodle-ink); opacity: var(--float-opacity);
+  transform: translate(var(--x), var(--y)) rotate(calc(var(--spin) * .15));
+  will-change: transform;
+}
+
+/* String lights: a scalloped wire with a small leaf at each hook and bulbs in three warm colors that glow in turn */
+.festive-lights { z-index: 5; }
+.festive-lights::before, .festive-lights::after { content: ""; position: absolute; }
+.festive-lights::before { inset: 0 0 auto; height: 110px; background: linear-gradient(var(--glow), transparent); }
+.festive-lights::after {
+  inset: 0;
+  background:
+    radial-gradient(110px 50vh at 0 0, var(--glow), transparent),
+    radial-gradient(110px 50vh at 100% 0, var(--glow), transparent);
+}
+.light-strip { position: absolute; }
+.light-strip::before, .light-strip::after, .light-strip i, .light-strip i::before, .light-strip i::after, .light-strip b, .light-strip u { position: absolute; inset: 0; }
+.light-strip::before, .light-strip::after, .light-strip i::before, .light-strip i::after { content: ""; }
+.light-strip::before { background: var(--wire); }
+.light-strip i:nth-child(1) { --c: var(--bulb-1); --at: 28px; --shift: 0px; --d: -1.2s; --dur: 7.4s; }
+.light-strip i:nth-child(2) { --c: var(--bulb-2); --at: 84px; --shift: 56px; --d: -6.3s; --dur: 9.6s; }
+.light-strip i:nth-child(3) { --c: var(--bulb-3); --at: 140px; --shift: 112px; --d: -3.8s; --dur: 8.2s; }
+.light-strip i:nth-child(4) { --c: var(--bulb-1); --at: 196px; --shift: 168px; --d: -8.9s; --dur: 10.4s; }
+.light-strip i:nth-child(5) { --c: var(--bulb-2); --at: 252px; --shift: 224px; --d: -0.4s; --dur: 7.8s; }
+.light-strip i:nth-child(6) { --c: var(--bulb-3); --at: 308px; --shift: 280px; --d: -5.1s; --dur: 9.1s; }
+.light-strip i:nth-child(7) { --c: var(--bulb-1); --at: 364px; --shift: 336px; --d: -7.6s; --dur: 8.7s; }
+.light-strip i:nth-child(8) { --c: var(--bulb-2); --at: 420px; --shift: 392px; --d: -2.7s; --dur: 10.9s; }
+.light-strip i::before { opacity: .7; }
+/* The travelling flash: a bright band masked to the bulbs, plus a soft glow that moves with it */
+.light-strip b, .light-strip u { overflow: hidden; }
+.light-strip b::before, .light-strip u::before { content: ""; position: absolute; }
+.light-strip u { opacity: .55; }
+
+.light-strip.top { inset: 0 0 auto; height: 46px; }
+.light-strip.top::before {
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2756%27 height=%2746%27%3E%3Cpath d=%27M0 2C14 19 42 19 56 2%27 fill=%27none%27 stroke=%27black%27 stroke-width=%271.4%27/%3E%3Crect x=%2725%27 y=%2713.6%27 width=%276%27 height=%276.4%27 rx=%271.2%27/%3E%3C/svg%3E") 0 0 / 56px 46px repeat-x;
+  mask: url("data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2756%27 height=%2746%27%3E%3Cpath d=%27M0 2C14 19 42 19 56 2%27 fill=%27none%27 stroke=%27black%27 stroke-width=%271.4%27/%3E%3Crect x=%2725%27 y=%2713.6%27 width=%276%27 height=%276.4%27 rx=%271.2%27/%3E%3C/svg%3E") 0 0 / 56px 46px repeat-x;
+}
+.light-strip.top::after {
+  background: linear-gradient(90deg, var(--leaf-1) 0 28px, var(--leaf-2) 28px 84px, var(--leaf-3) 84px 140px, var(--leaf-1) 140px) 0 0 / 168px 100% repeat-x;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2756%27 height=%2746%27%3E%3Csvg x=%2721%27 y=%27-3%27 width=%2714%27 height=%2714%27 viewBox=%270 0 64 64%27%3E%3Cpath transform=%27rotate(-14 32 32)%27 d=%27M32 5l4.5 10.5 7.5-4-2 12.5 9.5-3.5-3 8.5 7.5 2.5-12.5 9.5 2 5.5-10.5-2.2L34 57h-4l-1.5-12.7-10.5 2.2 2-5.5L7.5 31.5 15 29l-3-8.5 9.5 3.5-2-12.5 7.5 4z%27/%3E%3C/svg%3E%3C/svg%3E") -28px 0 / 56px 46px repeat-x;
+  mask: url("data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2756%27 height=%2746%27%3E%3Csvg x=%2721%27 y=%27-3%27 width=%2714%27 height=%2714%27 viewBox=%270 0 64 64%27%3E%3Cpath transform=%27rotate(-14 32 32)%27 d=%27M32 5l4.5 10.5 7.5-4-2 12.5 9.5-3.5-3 8.5 7.5 2.5-12.5 9.5 2 5.5-10.5-2.2L34 57h-4l-1.5-12.7-10.5 2.2 2-5.5L7.5 31.5 15 29l-3-8.5 9.5 3.5-2-12.5 7.5 4z%27/%3E%3C/svg%3E%3C/svg%3E") -28px 0 / 56px 46px repeat-x;
+}
+.light-strip.top i::before { background: radial-gradient(circle 24px at var(--at) 29px, color-mix(in srgb, var(--c) 50%, transparent), transparent) 0 0 / 448px 100% repeat-x; }
+.light-strip.top i::after {
+  background: radial-gradient(circle 5.5px at calc(var(--at) - 2.4px) 26px, rgb(255 255 255 / 72%), transparent) 0 0 / 448px 100% repeat-x, var(--c);
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%27448%27 height=%2746%27%3E%3Cpath d=%27M25 19.6C22.4 22.8 21.6 26 21.6 28.8C21.6 32.8 24.4 36 28 36S34.4 32.8 34.4 28.8C34.4 26 33.6 22.8 31 19.6Z%27/%3E%3C/svg%3E") var(--shift) 0 / 448px 46px repeat-x;
+  mask: url("data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%27448%27 height=%2746%27%3E%3Cpath d=%27M25 19.6C22.4 22.8 21.6 26 21.6 28.8C21.6 32.8 24.4 36 28 36S34.4 32.8 34.4 28.8C34.4 26 33.6 22.8 31 19.6Z%27/%3E%3C/svg%3E") var(--shift) 0 / 448px 46px repeat-x;
+}
+.light-strip.top b {
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2756%27 height=%2746%27%3E%3Cpath d=%27M25 19.6C22.4 22.8 21.6 26 21.6 28.8C21.6 32.8 24.4 36 28 36S34.4 32.8 34.4 28.8C34.4 26 33.6 22.8 31 19.6Z%27/%3E%3C/svg%3E") 0 0 / 56px 46px repeat-x;
+  mask: url("data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2756%27 height=%2746%27%3E%3Cpath d=%27M25 19.6C22.4 22.8 21.6 26 21.6 28.8C21.6 32.8 24.4 36 28 36S34.4 32.8 34.4 28.8C34.4 26 33.6 22.8 31 19.6Z%27/%3E%3C/svg%3E") 0 0 / 56px 46px repeat-x;
+}
+.light-strip.top :is(b, u)::before { top: 0; bottom: 0; left: 0; width: 300px; transform: translateX(-300px); }
+.light-strip.top b::before { background: linear-gradient(90deg, transparent, rgb(255 250 228 / 92%), transparent); }
+.light-strip.top u::before { background: radial-gradient(closest-side, var(--flash-glow), transparent); }
+
+.light-strip.side { top: 40px; width: 46px; height: 50vh; -webkit-mask-image: linear-gradient(#000 55%, transparent); mask-image: linear-gradient(#000 55%, transparent); }
+.light-strip.left { left: 0; --offset: -1.7s; }
+.light-strip.right { right: 0; transform: scaleX(-1); --offset: -4.3s; }
+.light-strip.side::before {
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2746%27 height=%2756%27%3E%3Cpath d=%27M2 0C19 14 19 42 2 56%27 fill=%27none%27 stroke=%27black%27 stroke-width=%271.4%27/%3E%3Crect x=%2713.6%27 y=%2725%27 width=%276.4%27 height=%276%27 rx=%271.2%27/%3E%3C/svg%3E") 0 0 / 46px 56px repeat-y;
+  mask: url("data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2746%27 height=%2756%27%3E%3Cpath d=%27M2 0C19 14 19 42 2 56%27 fill=%27none%27 stroke=%27black%27 stroke-width=%271.4%27/%3E%3Crect x=%2713.6%27 y=%2725%27 width=%276.4%27 height=%276%27 rx=%271.2%27/%3E%3C/svg%3E") 0 0 / 46px 56px repeat-y;
+}
+.light-strip.side::after {
+  background: linear-gradient(var(--leaf-2) 0 28px, var(--leaf-3) 28px 84px, var(--leaf-1) 84px 140px, var(--leaf-2) 140px) 0 0 / 100% 168px repeat-y;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2746%27 height=%2756%27%3E%3Csvg x=%27-3%27 y=%2721%27 width=%2714%27 height=%2714%27 viewBox=%270 0 64 64%27%3E%3Cpath transform=%27rotate(-76 32 32)%27 d=%27M32 5l4.5 10.5 7.5-4-2 12.5 9.5-3.5-3 8.5 7.5 2.5-12.5 9.5 2 5.5-10.5-2.2L34 57h-4l-1.5-12.7-10.5 2.2 2-5.5L7.5 31.5 15 29l-3-8.5 9.5 3.5-2-12.5 7.5 4z%27/%3E%3C/svg%3E%3C/svg%3E") 0 -28px / 46px 56px repeat-y;
+  mask: url("data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2746%27 height=%2756%27%3E%3Csvg x=%27-3%27 y=%2721%27 width=%2714%27 height=%2714%27 viewBox=%270 0 64 64%27%3E%3Cpath transform=%27rotate(-76 32 32)%27 d=%27M32 5l4.5 10.5 7.5-4-2 12.5 9.5-3.5-3 8.5 7.5 2.5-12.5 9.5 2 5.5-10.5-2.2L34 57h-4l-1.5-12.7-10.5 2.2 2-5.5L7.5 31.5 15 29l-3-8.5 9.5 3.5-2-12.5 7.5 4z%27/%3E%3C/svg%3E%3C/svg%3E") 0 -28px / 46px 56px repeat-y;
+}
+.light-strip.side i::before { background: radial-gradient(circle 24px at 29px var(--at), color-mix(in srgb, var(--c) 50%, transparent), transparent) 0 0 / 100% 448px repeat-y; }
+.light-strip.side i::after {
+  background: radial-gradient(circle 5.5px at 26px calc(var(--at) - 2.4px), rgb(255 255 255 / 72%), transparent) 0 0 / 100% 448px repeat-y, var(--c);
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2746%27 height=%27448%27%3E%3Cpath d=%27M19.6 25C22.8 22.4 26 21.6 28.8 21.6C32.8 21.6 36 24.4 36 28S32.8 34.4 28.8 34.4C26 34.4 22.8 33.6 19.6 31Z%27/%3E%3C/svg%3E") 0 var(--shift) / 46px 448px repeat-y;
+  mask: url("data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2746%27 height=%27448%27%3E%3Cpath d=%27M19.6 25C22.8 22.4 26 21.6 28.8 21.6C32.8 21.6 36 24.4 36 28S32.8 34.4 28.8 34.4C26 34.4 22.8 33.6 19.6 31Z%27/%3E%3C/svg%3E") 0 var(--shift) / 46px 448px repeat-y;
+}
+.light-strip.side b {
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2746%27 height=%2756%27%3E%3Cpath d=%27M19.6 25C22.8 22.4 26 21.6 28.8 21.6C32.8 21.6 36 24.4 36 28S32.8 34.4 28.8 34.4C26 34.4 22.8 33.6 19.6 31Z%27/%3E%3C/svg%3E") 0 0 / 46px 56px repeat-y;
+  mask: url("data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2746%27 height=%2756%27%3E%3Cpath d=%27M19.6 25C22.8 22.4 26 21.6 28.8 21.6C32.8 21.6 36 24.4 36 28S32.8 34.4 28.8 34.4C26 34.4 22.8 33.6 19.6 31Z%27/%3E%3C/svg%3E") 0 0 / 46px 56px repeat-y;
+}
+.light-strip.side :is(b, u)::before { left: 0; right: 0; top: 0; height: 260px; transform: translateY(-260px); }
+.light-strip.side b::before { background: linear-gradient(transparent, rgb(255 250 228 / 92%), transparent); }
+.light-strip.side u::before { background: radial-gradient(closest-side, var(--flash-glow), transparent); }
+
+@media (prefers-reduced-motion: no-preference) {
+  .festive-item { animation: festive-rise var(--dur) linear var(--delay) infinite; }
+  .festive-item.falls { animation-name: festive-fall; animation-timing-function: ease-in-out; }
+  .festive-bokeh { animation: festive-float var(--dur) ease-in-out var(--delay) infinite alternate; }
+  .light-strip i::before { animation: festive-halo var(--dur) ease-in-out calc(var(--d) + var(--offset, 0s)) infinite; }
+  .light-strip i::after { animation: festive-bulb var(--dur) ease-in-out calc(var(--d) + var(--offset, 0s)) infinite; }
+  .light-strip.top :is(b, u)::before { animation: festive-chase-across 18s cubic-bezier(.45, 0, .55, 1) infinite; }
+  .light-strip.side :is(b, u)::before { animation: festive-chase-down 18s cubic-bezier(.45, 0, .55, 1) infinite; }
+  .festive-lights::before { animation: festive-glow 12s ease-in-out infinite alternate; }
+  .festive-lights::after { animation: festive-glow 12s ease-in-out -6s infinite alternate; }
+}
+@keyframes festive-rise {
+  from { transform: translate(var(--x), 108vh) rotate(0deg); }
+  to { transform: translate(calc(var(--x) + var(--drift)), -30vh) rotate(var(--spin)); }
+}
+@keyframes festive-fall {
+  0% { transform: translate(var(--x), -12vh) rotate(0deg); }
+  25% { transform: translate(calc(var(--x) + var(--drift)), 20vh) rotate(calc(var(--spin) * .25)); }
+  50% { transform: translate(var(--x), 52vh) rotate(calc(var(--spin) * .5)); }
+  75% { transform: translate(calc(var(--x) + var(--drift)), 84vh) rotate(calc(var(--spin) * .75)); }
+  100% { transform: translate(var(--x), 114vh) rotate(var(--spin)); }
+}
+@keyframes festive-float {
+  from { transform: translate(var(--x), var(--y)) scale(1); opacity: calc(var(--bokeh-opacity) * .55); }
+  to { transform: translate(calc(var(--x) + var(--dx)), calc(var(--y) + var(--dy))) scale(1.18); opacity: var(--bokeh-opacity); }
+}
+@keyframes festive-chase-across {
+  from { transform: translateX(-300px); }
+  50%, to { transform: translateX(calc(100vw + 300px)); }
+}
+@keyframes festive-chase-down {
+  0%, 10% { transform: translateY(-260px); }
+  56%, to { transform: translateY(calc(50vh + 260px)); }
+}
+@keyframes festive-halo { 0%, 100% { opacity: .25; } 28% { opacity: .85; } 42% { opacity: .5; } 64% { opacity: 1; } 82% { opacity: .35; } }
+@keyframes festive-bulb { 0%, 100% { opacity: .7; } 28% { opacity: .94; } 42% { opacity: .8; } 64% { opacity: 1; } 82% { opacity: .74; } }
+@keyframes festive-glow { from { opacity: .55; } to { opacity: 1; } }

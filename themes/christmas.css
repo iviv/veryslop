@@ -1,0 +1,142 @@
+/* Christmas theme colors (light and dark) and its pine-garland string lights. Shared holiday pieces live in festive.css. */
+:root[data-festive="christmas"]:not([data-theme="dark"]) {
+  --bg: #f8f2ea;
+  --topbar: #fffaf3;
+  --surface-2: #fdfaf5;
+  --surface-3: #f3ede5;
+  --line: #ebe2d6;
+  --line-2: #f2ebe1;
+  --control-line: #e5dccf;
+  --control-line-hover: #d5c9ba;
+  --hover: #f6f0e8;
+  --track: #f1eae0;
+  --accent: #b3242c;
+  --accent-hover: #9c1f26;
+  --accent-text: #a82129;
+  --accent-ink: #8e1a21;
+  --accent-soft: #fcebea;
+  --accent-soft-line: #f3c8ca;
+  --accent-ring: #f6d2d3;
+  --accent-shadow: #7a141a;
+  --on-accent: #ffffff;
+  --focus-line: #efbdbf;
+  --focus-ring: rgb(179 36 44 / 11%);
+  --wpm-bg: #fcf0ef;
+  --kbd-tray: #e9e3da;
+  --kbd-tray-line: #dcd3c7;
+  --key-number-bg: #3d3430;
+  --key-target-bg: #ffbcc0;
+  --key-target-ink: #5a0d12;
+  --key-target-shadow: #e3858b;
+  --key-target-upper: #7a1a20;
+  --key-hint-bg: #24432e;
+  --key-hint-line: #a6dbb1;
+  --key-hint-ink: #e3f6e7;
+  --card-shadow: 0 1px 2px rgb(80 30 20 / 5%), 0 12px 32px rgb(90 40 20 / 8%);
+  --festive-backdrop:
+    radial-gradient(120% 70% at 50% -12%, rgb(255 205 120 / 34%), transparent 62%),
+    radial-gradient(60% 55% at -6% 106%, rgb(46 125 70 / 20%), transparent 70%),
+    radial-gradient(60% 55% at 106% 106%, rgb(180 36 44 / 18%), transparent 70%),
+    linear-gradient(#fbf6ee, #f4e9dc);
+  --doodle-ink: #7a3a30;
+  --dd-o: #f6b77c;
+  --dd-r: #ee9a9a;
+  --dd-y: #f5d488;
+  --dd-g: #a9cf9f;
+  --dd-b: #d9a978;
+  --dd-p: #bfdcef;
+  --dd-c: #fffaf0;
+  --dd-stripe: #d84a4a;
+  --dd-pine: #3f8a52;
+  --dd-icing: #fffaf0;
+  --doodle-opacity: .42;
+  --float-opacity: .7;
+  --bokeh-opacity: .45;
+  --wire: rgb(58 72 52 / 70%);
+  --bulb-1: #e8453c;
+  --bulb-2: #f2b632;
+  --bulb-3: #3aa35b;
+  --leaf-1: #2f7d45;
+  --leaf-3: #b3242c;
+  --glow: rgb(255 180 90 / 15%);
+  --flash-glow: rgb(255 200 110 / 55%);
+}
+:root[data-festive="christmas"][data-theme="dark"] {
+  --bg: #101512;
+  --topbar: #161c18;
+  --surface: #1a201c;
+  --surface-2: #1d231f;
+  --surface-3: #222a24;
+  --line: #2c352e;
+  --line-2: #252d27;
+  --control-bg: #1f2621;
+  --control-line: #344038;
+  --control-line-hover: #435047;
+  --hover: #252e28;
+  --input-bg: #121714;
+  --track: #252d27;
+  --segment-active-bg: #2c352e;
+  --segment-active-line: #36413a;
+  --dock-bg: #121714;
+  --accent: #f0646c;
+  --accent-hover: #f47c83;
+  --accent-text: #f4868c;
+  --accent-ink: #ffc9cc;
+  --accent-soft: #3a1c1f;
+  --accent-soft-line: #5c2a2f;
+  --accent-ring: #5c2a2f;
+  --accent-shadow: #c9454d;
+  --on-accent: #2a0609;
+  --focus-line: #5c2a2f;
+  --focus-ring: rgb(240 100 108 / 13%);
+  --wpm-bg: #2a1517;
+  --kbd-tray: #0b0f0c;
+  --kbd-tray-line: #1f2621;
+  --key-bg: #252a26;
+  --key-number-bg: #2e3a31;
+  --key-target-bg: #f0646c;
+  --key-target-ink: #2a0609;
+  --key-target-shadow: #c9454d;
+  --key-target-upper: #5a1418;
+  --key-hint-bg: #1d3a26;
+  --key-hint-line: #6fcf8a;
+  --key-hint-ink: #d6f5de;
+  --festive-backdrop:
+    radial-gradient(120% 70% at 50% -12%, rgb(255 170 80 / 14%), transparent 62%),
+    radial-gradient(60% 55% at -6% 106%, rgb(40 120 70 / 22%), transparent 70%),
+    radial-gradient(60% 55% at 106% 106%, rgb(170 30 40 / 22%), transparent 70%),
+    linear-gradient(#111713, #181210);
+  --doodle-ink: #ead2b4;
+  --dd-o: #7a4320;
+  --dd-r: #6a2226;
+  --dd-y: #6a5520;
+  --dd-g: #24452c;
+  --dd-b: #573a26;
+  --dd-p: #22384a;
+  --dd-c: #2f2a26;
+  --dd-stripe: #c0464c;
+  --dd-pine: #6fbf85;
+  --dd-icing: #e9dccb;
+  --doodle-opacity: .24;
+  --float-opacity: .6;
+  --bokeh-opacity: .3;
+  --wire: rgb(130 150 120 / 55%);
+  --bulb-1: #ff5a4f;
+  --bulb-2: #ffc847;
+  --bulb-3: #4cc76f;
+  --leaf-1: #4cae68;
+  --leaf-3: #e0525a;
+  --glow: rgb(255 160 80 / 11%);
+  --flash-glow: rgb(255 190 100 / 40%);
+}
+
+:root[data-festive="christmas"] .light-strip.top::after {
+  background: linear-gradient(90deg, var(--leaf-1) 0 28px, var(--leaf-3) 28px 84px, var(--leaf-1) 84px) 0 0 / 112px 100% repeat-x;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%27112%27 height=%2746%27%3E%3Cpath d=%27M28 3Q26.6 3 24.4 1.5Q23.5 3.7 21.1 2.5Q20.5 5.1 18.3 4.5Q18 7 17 8Q18.4 7.9 20.5 9.3Q21.5 7.3 23.9 8.5Q24.5 5.9 26.7 6.7Q27 4.1 28 3ZM28 3Q29 4.1 29.3 6.7Q31.5 5.9 32.1 8.5Q34.5 7.3 35.5 9.3Q37.6 7.9 39 8Q38 7 37.7 4.5Q35.5 5.1 34.9 2.5Q32.5 3.7 31.6 1.5Q29.4 3 28 3Z%27/%3E%3Ccircle cx=%2784%27 cy=%274.6%27 r=%272.7%27/%3E%3Ccircle cx=%2780.8%27 cy=%278.2%27 r=%272.5%27/%3E%3Ccircle cx=%2787.2%27 cy=%278.2%27 r=%272.5%27/%3E%3C/svg%3E") -28px 0 / 112px 46px repeat-x;
+  mask: url("data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%27112%27 height=%2746%27%3E%3Cpath d=%27M28 3Q26.6 3 24.4 1.5Q23.5 3.7 21.1 2.5Q20.5 5.1 18.3 4.5Q18 7 17 8Q18.4 7.9 20.5 9.3Q21.5 7.3 23.9 8.5Q24.5 5.9 26.7 6.7Q27 4.1 28 3ZM28 3Q29 4.1 29.3 6.7Q31.5 5.9 32.1 8.5Q34.5 7.3 35.5 9.3Q37.6 7.9 39 8Q38 7 37.7 4.5Q35.5 5.1 34.9 2.5Q32.5 3.7 31.6 1.5Q29.4 3 28 3Z%27/%3E%3Ccircle cx=%2784%27 cy=%274.6%27 r=%272.7%27/%3E%3Ccircle cx=%2780.8%27 cy=%278.2%27 r=%272.5%27/%3E%3Ccircle cx=%2787.2%27 cy=%278.2%27 r=%272.5%27/%3E%3C/svg%3E") -28px 0 / 112px 46px repeat-x;
+}
+:root[data-festive="christmas"] .light-strip.side::after {
+  background: linear-gradient(var(--leaf-1) 0 28px, var(--leaf-3) 28px 84px, var(--leaf-1) 84px) 0 0 / 100% 112px repeat-y;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2746%27 height=%27112%27%3E%3Cpath d=%27M3 28Q4.1 27 6.7 26.7Q5.9 24.5 8.5 23.9Q7.3 21.5 9.3 20.5Q7.9 18.4 8 17Q7 18 4.5 18.3Q5.1 20.5 2.5 21.1Q3.7 23.5 1.5 24.4Q3 26.6 3 28ZM3 28Q3 29.4 1.5 31.6Q3.7 32.5 2.5 34.9Q5.1 35.5 4.5 37.7Q7 38 8 39Q7.9 37.6 9.3 35.5Q7.3 34.5 8.5 32.1Q5.9 31.5 6.7 29.3Q4.1 29 3 28Z%27/%3E%3Ccircle cx=%274.6%27 cy=%2784%27 r=%272.7%27/%3E%3Ccircle cx=%278.2%27 cy=%2780.8%27 r=%272.5%27/%3E%3Ccircle cx=%278.2%27 cy=%2787.2%27 r=%272.5%27/%3E%3C/svg%3E") 0 -28px / 46px 112px repeat-y;
+  mask: url("data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2746%27 height=%27112%27%3E%3Cpath d=%27M3 28Q4.1 27 6.7 26.7Q5.9 24.5 8.5 23.9Q7.3 21.5 9.3 20.5Q7.9 18.4 8 17Q7 18 4.5 18.3Q5.1 20.5 2.5 21.1Q3.7 23.5 1.5 24.4Q3 26.6 3 28ZM3 28Q3 29.4 1.5 31.6Q3.7 32.5 2.5 34.9Q5.1 35.5 4.5 37.7Q7 38 8 39Q7.9 37.6 9.3 35.5Q7.3 34.5 8.5 32.1Q5.9 31.5 6.7 29.3Q4.1 29 3 28Z%27/%3E%3Ccircle cx=%274.6%27 cy=%2784%27 r=%272.7%27/%3E%3Ccircle cx=%278.2%27 cy=%2780.8%27 r=%272.5%27/%3E%3Ccircle cx=%278.2%27 cy=%2787.2%27 r=%272.5%27/%3E%3C/svg%3E") 0 -28px / 46px 112px repeat-y;
+}
