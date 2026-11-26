@@ -396,6 +396,24 @@ function plusMinusIcon(circled = false) {
 
 const sectionDisclosureIcon = plusMinusIcon(true);
 const detailDisclosureIcon = plusMinusIcon();
+
+// Label and value rows inside a foldable panel, split by hairlines; each value copies on click.
+// A row is { label, value } or { label, html, copy }; tag sets the label as a tag name, code keeps line breaks.
+function detailRows(rows) {
+    return `<dl class="detail-rows">${rows.map(row => {
+        const empty = row.html === undefined && row.value === '';
+        const copy = empty ? '' : row.copy;
+        const value = empty ? '<span class="detail-empty">Empty</span>' : row.html ?? escapeHtml(row.value);
+        return `
+        <div><dt${row.tag ? ' class="is-tag"' : ''}>${escapeHtml(row.label)}</dt><dd class="detail-value${row.code ? ' is-code' : ''}"${
+            copy === undefined ? '' : ` data-copy="${escapeHtml(copy)}"`}>${value}</dd></div>`;
+    }).join('')}</dl>`;
+}
+
+const tagRows = tags => detailRows(Object.entries(tags).map(([label, value]) => ({ label, value, tag: true })));
+
+// A DNS TXT record, free to wrap after each semicolon.
+const recordHtml = text => text.split(';').map(escapeHtml).join(';<wbr>');
 const bulkDisclosureIcon = `<svg aria-hidden="true" focusable="false" width="16" height="16"
     viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
     <path d="M4 12h16" stroke-dasharray="2 3"/>
@@ -527,7 +545,7 @@ document.addEventListener('click', (event) => {
 // Every value field copies itself on click (or Enter/Space when focused) and confirms with a toast.
 const copyableSelector = [
     '.data-card', '.subject-text', '.facts dd.mono', '.relay-details dd', '.route-host', '.route-ip', '.route-embedded', '.route-from', '.dmarc-domain', '.dmarc-address', '.spf-token', '.spf-ptr-name', '.net-owner-name', '.link-url', '.link-domain', '.dkim-domain',
-    '.dkim-check-value', '.tech-value', '.spf-trace-record', '.spf-dns-cmd', '.summary-addr', '.summary-host[data-copy]'
+    '.dkim-check-value', '.tech-value', '.detail-value', '.spf-trace-record', '.spf-dns-cmd', '.summary-addr', '.summary-host[data-copy]'
 ].join(', ');
 
 function markCopyable(root) {
@@ -1500,7 +1518,7 @@ function displaySummary() {
                 reported.top && `${resultCount} ${resultCount === 1 ? 'result' : 'results'}`,
                 reported.dto.headers.length > 1 && `${reported.dto.headers.length} headers`, arcSealed(reported) && 'ARC-sealed'].filter(Boolean).join(' · ')}</span>
         </button>
-        <div id="summary-reported" class="${wasOpen ? '' : 'hidden'}">${reportedDetails(reported)}</div>`
+        <div id="summary-reported" class="disclosure-panel${wasOpen ? '' : ' hidden'}">${reportedDetails(reported)}</div>`
             : '<p class="note summary-unreported">No Authentication-Results header, so there\'s no record of what the receiving server decided.</p>'}`,
         summaryWalkthrough(glance));
     selectExplainView(summaryOutput.firstElementChild);
@@ -2253,7 +2271,7 @@ function displayArc(result) {
         <button type="button" class="dkim-advanced-toggle" aria-controls="arc-raw" aria-expanded="false">
             ${detailDisclosureIcon}<span>ARC headers</span><span class="toggle-meta">${result.sets.length * 3} headers</span>
         </button>
-        <div id="arc-raw" class="hidden"><pre class="tech-value code scrollable-pre">${escapeHtml(result.sets.flatMap(set => set.raw).join('\r\n'))}</pre></div>` : ''}`;
+        <div id="arc-raw" class="disclosure-panel is-flush hidden"><pre class="tech-value code scrollable-pre">${escapeHtml(result.sets.flatMap(set => set.raw).join('\r\n'))}</pre></div>` : ''}`;
     // A message without ARC has nothing to walk through.
     arcOutput.innerHTML = result.status === 'none' ? resultView : explainHost('ARC view', resultView, arcWalkthrough(result));
     selectExplainView(arcOutput.querySelector(':scope > .explain-host'));
@@ -3957,7 +3975,6 @@ function displaySpf(spfDto) {
         return;
     }
     const dnsOutput = spfDto.rawDns || 'No record';
-    const dnsOutputDisplay = escapeHtml(dnsOutput.length > 255 ? dnsOutput.substring(0, 255) + '…' : dnsOutput);
     const reported = spfDto.headerResult;
     const agrees = reported && reported === spfDto.result;
     const from = spfFromNote(spfDto);
@@ -4011,7 +4028,7 @@ function displaySpf(spfDto) {
             <button type="button" class="dkim-advanced-toggle" aria-controls="spf-evaluation" aria-expanded="false">
                 ${detailDisclosureIcon}<span>Full evaluation</span><span class="toggle-meta">${records} ${records === 1 ? 'record' : 'records'}</span>
             </button>
-            <div id="spf-evaluation" class="hidden">
+            <div id="spf-evaluation" class="disclosure-panel hidden">
                 <div class="spf-trace-header-container">
                     <h4>Evaluation trace</h4>
                     ${spfDto.trace.children?.length ? `<button type="button" class="toggle-all-spf spf-trace-toggle-btn" aria-controls="spf-trace-branches" aria-expanded="false">${bulkDisclosureIcon}<span>Expand all</span></button>` : ''}
@@ -4023,13 +4040,9 @@ function displaySpf(spfDto) {
             <button type="button" class="dkim-advanced-toggle" aria-controls="spf-dns" aria-expanded="false">
                 ${detailDisclosureIcon}<span>DNS record</span><span class="toggle-meta">${escapeHtml(spfDto.dnsCommand.replace(/^dig TXT /, ''))}</span>
             </button>
-            <div id="spf-dns" class="hidden">
-                <div class="dns-command-card">
-                    <div class="dns-command-label">Lookup command</div>
-                    <div class="data-card"><div class="data-value">${escapeHtml(spfDto.dnsCommand)}</div></div>
-                    <div class="dns-command-label">Raw SPF record</div>
-                    <div class="data-card"><div class="data-value" data-copy="${escapeHtml(dnsOutput)}">${dnsOutputDisplay}</div></div>
-                </div>
+            <div id="spf-dns" class="disclosure-panel is-rows hidden">${detailRows([
+                { label: 'Lookup command', value: spfDto.dnsCommand },
+                { label: 'Raw SPF record', html: recordHtml(dnsOutput), copy: dnsOutput }])}
             </div>` : ''}`, spfWalkthrough(spfDto), 'spf-record-card');
     selectExplainView(spfOutput.firstElementChild);
 
@@ -4150,7 +4163,6 @@ function displayDmarc(dmarcDto) {
         return;
     }
     const dnsOutput = dto.rawDns || 'No record';
-    const dnsOutputDisplay = escapeHtml(dnsOutput.length > 255 ? dnsOutput.substring(0, 255) + '…' : dnsOutput);
     const checks = dto.checks || [];
     const policyDomain = dto.fetchedDomain || dto.domain;
 
@@ -4189,13 +4201,9 @@ function displayDmarc(dmarcDto) {
             <button type="button" class="dkim-advanced-toggle" aria-controls="dmarc-dns" aria-expanded="false">
                 ${detailDisclosureIcon}<span>DNS record</span><span class="toggle-meta">${escapeHtml(dto.dnsCommand.replace(/^dig TXT /, ''))}</span>
             </button>
-            <div id="dmarc-dns" class="hidden">
-                <div class="dns-command-card">
-                    <div class="dns-command-label">Lookup command</div>
-                    <div class="data-card"><div class="data-value">${escapeHtml(dto.dnsCommand)}</div></div>
-                    <div class="dns-command-label">Raw DMARC record</div>
-                    <div class="data-card"><div class="data-value" data-copy="${escapeHtml(dnsOutput)}">${dnsOutputDisplay}</div></div>
-                </div>
+            <div id="dmarc-dns" class="disclosure-panel is-rows hidden">${detailRows([
+                { label: 'Lookup command', value: dto.dnsCommand },
+                { label: 'Raw DMARC record', html: recordHtml(dnsOutput), copy: dnsOutput }])}
             </div>` : ''}`, dmarcWalkthrough(dto), 'dmarc-record-card');
     selectExplainView(dmarcOutput.firstElementChild);
 }
@@ -4373,7 +4381,6 @@ function displayDkimResult(i, dkim, result) {
 
     const dataToVerify = result.details?.dataToVerify || 'Not available.';
     const dnsOutput = dkim.dnsRaw || 'No record';
-    const dnsOutputDisplay = escapeHtml(dnsOutput.length > 255 ? dnsOutput.substring(0, 255) + '…' : dnsOutput);
 
     verificationDiv.innerHTML = explainHost('DKIM view', `
         <div class="${verdict.cls}">${verdict.text}</div>
@@ -4390,40 +4397,26 @@ function displayDkimResult(i, dkim, result) {
         <button type="button" class="dkim-advanced-toggle" aria-controls="dkim-tech-${i}" aria-expanded="false">
             ${detailDisclosureIcon}<span>Technical details</span><span class="toggle-meta">hashes, signed data, key</span>
         </button>
-        <div id="dkim-tech-${i}" class="hidden">
-            <div class="tech-details-grid">
-                <div class="tech-detail-card"><span class="tech-label">Body hash (expected)</span><div class="tech-value code">${escapeHtml(bhResult.expected || 'N/A')}</div></div>
-                <div class="tech-detail-card"><span class="tech-label">Body hash (calculated)</span><div class="tech-value code">${escapeHtml(bhResult.calculated || 'N/A')}</div></div>
-                <div class="tech-detail-card full-width"><span class="tech-label">Canonicalized headers (data signed)</span><pre class="tech-value code scrollable-pre">${escapeHtml(dataToVerify)}</pre></div>
-                <div class="tech-detail-card full-width"><span class="tech-label">Public key (p=) in current DNS</span><div class="tech-value code">${escapeHtml(dkim.dnsTags?.p || result.keyError || 'Not available.')}</div></div>
-                <div class="tech-detail-card full-width"><span class="tech-label">Signature (b=)</span><div class="tech-value code">${escapeHtml(dkim.tags.b || 'Not available.')}</div></div>
-            </div>
+        <div id="dkim-tech-${i}" class="disclosure-panel is-rows hidden">${detailRows([
+            { label: 'Body hash (expected)', value: bhResult.expected || 'N/A' },
+            { label: 'Body hash (calculated)', value: bhResult.calculated || 'N/A' },
+            { label: 'Canonicalized headers (data signed)', value: dataToVerify, code: true },
+            { label: 'Public key (p=) in current DNS', value: dkim.dnsTags?.p || result.keyError || 'Not available.' },
+            { label: 'Signature (b=)', value: dkim.tags.b || 'Not available.' }])}
         </div>
 
         <button type="button" class="dkim-advanced-toggle" aria-controls="dkim-raw-${i}" aria-expanded="false">
             ${detailDisclosureIcon}<span>Signature tags</span><span class="toggle-meta">${Object.keys(dkim.tags).length} tags</span>
         </button>
-        <div id="dkim-raw-${i}" class="hidden mt-10">
-            <div class="tags-grid">${Object.entries(dkim.tags).map(([tag, value]) => `
-                <div class="data-card"><div class="data-key">${escapeHtml(tag)}</div><div class="data-value" title="${escapeHtml(value)}">${escapeHtml(value)}</div></div>`).join('')}
-            </div>
-        </div>
+        <div id="dkim-raw-${i}" class="disclosure-panel is-rows hidden">${tagRows(dkim.tags)}</div>
 
         <button type="button" class="dkim-advanced-toggle" aria-controls="dkim-dns-${i}" aria-expanded="false">
             ${detailDisclosureIcon}<span>Key record</span><span class="toggle-meta">${escapeHtml(keyName)}</span>
         </button>
-        <div id="dkim-dns-${i}" class="hidden">
-            <div class="dns-command-card">
-                <div class="dns-command-label">Key lookup command</div>
-                <div class="data-card"><div class="data-value">${escapeHtml(dkim.dnsCommand || 'dig TXT ' + keyName)}</div></div>
-                ${dkim.dnsTags ? `
-                <div class="dns-command-label">Key record tags</div>
-                <div class="tags-grid">${Object.entries(dkim.dnsTags).map(([tag, value]) => `
-                    <div class="data-card"><div class="data-key">${escapeHtml(tag)}</div><div class="data-value" title="${escapeHtml(value)}">${escapeHtml(value)}</div></div>`).join('')}
-                </div>` : ''}
-                <div class="dns-command-label">Raw key record</div>
-                <div class="data-card"><div class="data-value" data-copy="${escapeHtml(dnsOutput)}">${dnsOutputDisplay}</div></div>
-            </div>
+        <div id="dkim-dns-${i}" class="disclosure-panel is-rows hidden">${detailRows([
+            { label: 'Key lookup command', value: dkim.dnsCommand || 'dig TXT ' + keyName },
+            { label: 'Raw key record', html: recordHtml(dnsOutput), copy: dnsOutput }])}
+            ${dkim.dnsTags ? `<div class="detail-heading">Key record tags</div>${tagRows(dkim.dnsTags)}` : ''}
         </div>`, dkimWalkthrough(dkim, result));
     selectExplainView(verificationDiv.firstElementChild);
 }

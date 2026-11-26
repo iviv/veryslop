@@ -500,8 +500,6 @@ h4::after {
 /* --- Utilities --- */
 .hidden { display: none !important; }
 
-.mt-10 { margin-top: 10px; }
-
 .error {
     margin: 0 0 12px;
     padding: 10px 14px;
@@ -756,6 +754,13 @@ h4::after {
 }
 
 .network-log li { overflow-wrap: anywhere; }
+
+/* Open, the log joins its header like the other foldable panels. */
+.network-log-toggle[aria-expanded="true"] + .network-log {
+    margin-top: -8px;
+    border-top: 0;
+    border-radius: 0 0 var(--radius-sm) var(--radius-sm);
+}
 
 .network-log-dest {
     margin-right: 8px;
@@ -1080,9 +1085,7 @@ h4::after {
    `translate` (not `transform`) so it doesn't fight the cards' fade-in animation;
    `position` + `z-index` keep a hovered card's hints above the content after it. */
 .section,
-.dkim-signature-card,
-.dns-command-card,
-.tech-detail-card {
+.dkim-signature-card {
     position: relative;
     transition: background-color 0.3s ease, border-color 0.2s ease, box-shadow 0.2s ease, translate 0.2s ease;
 }
@@ -1095,7 +1098,7 @@ h4::after {
         box-shadow: var(--shadow-raised);
     }
 
-    :is(.dkim-signature-card, .dns-command-card, .tech-detail-card):hover {
+    .dkim-signature-card:hover {
         z-index: 1;
         translate: 0 -1px;
         border-color: color-mix(in srgb, var(--accent-color) 45%, var(--line));
@@ -1761,13 +1764,7 @@ h4::after {
     color: var(--muted);
 }
 
-/* --- Key/value chips --- */
-.tags-grid {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-}
-
+/* --- Value fields --- */
 .data-card {
     display: flex;
     align-items: center;
@@ -1785,13 +1782,6 @@ h4::after {
 .data-card:hover {
     border-color: color-mix(in srgb, var(--accent-color) 45%, var(--line));
     box-shadow: var(--shadow-sm);
-}
-
-.data-key {
-    flex-shrink: 0;
-    font-size: 0.82rem;
-    font-weight: 650;
-    color: var(--heading);
 }
 
 .data-value {
@@ -1816,7 +1806,7 @@ h4::after {
 }
 
 /* Text values get a padded highlight that hugs the text. */
-.is-copyable:not(.data-card, .tech-value, .route-chip) {
+.is-copyable:not(.data-card, .tech-value, .detail-value, .route-chip) {
     width: fit-content;
     max-width: calc(100% + 8px);
     margin-inline: -4px;
@@ -1827,7 +1817,7 @@ h4::after {
     transition: background-color 0.15s ease, box-shadow 0.15s ease;
 }
 
-.is-copyable:not(.data-card, .tech-value, .route-chip):hover {
+.is-copyable:not(.data-card, .tech-value, .detail-value, .route-chip):hover {
     background-color: color-mix(in srgb, var(--accent-color) 10%, transparent);
 }
 
@@ -2231,23 +2221,9 @@ h4::after {
     cursor: default;
 }
 
-/* --- DNS lookup panel --- */
-.dns-command-card {
-    margin-top: 18px;
-    padding: 14px 16px;
-    border: 1px solid var(--line);
-    border-radius: var(--radius);
-    background: var(--surface-2);
-}
-
 .dns-command-label {
     display: block;
     margin-bottom: 8px;
-}
-
-.dns-command-card .data-card + .dns-command-label,
-.dns-command-card .tags-grid + .dns-command-label {
-    margin-top: 14px;
 }
 
 /* --- Relay views --- */
@@ -3657,6 +3633,7 @@ h4::after {
 .dkim-signature-card > div > .notice,
 .dkim-signature-card > div > .error { margin-bottom: 4px; }
 
+/* --- Foldable panels: a tinted header that, when open, joins its panel into one card --- */
 .dkim-advanced-toggle {
     display: flex;
     align-items: center;
@@ -3666,7 +3643,7 @@ h4::after {
     padding: 10px 14px;
     border: 1px solid var(--line);
     border-radius: var(--radius-sm);
-    background: var(--container-bg);
+    background: var(--surface-2);
     color: var(--heading);
     font: inherit;
     font-size: 0.875rem;
@@ -3674,13 +3651,12 @@ h4::after {
     text-align: left;
     cursor: pointer;
     user-select: none;
-    transition: background-color 0.15s ease, border-color 0.15s ease;
+    transition: background-color 0.15s ease;
 }
 
-.dkim-advanced-toggle:hover {
-    border-color: color-mix(in srgb, var(--accent-color) 45%, var(--line));
-    background: var(--surface-2);
-}
+.dkim-advanced-toggle:hover { background: var(--surface-3); }
+
+.dkim-advanced-toggle[aria-expanded="true"] { border-radius: var(--radius-sm) var(--radius-sm) 0 0; }
 
 .dkim-advanced-toggle .disclosure-icon {
     width: 16px;
@@ -3688,28 +3664,93 @@ h4::after {
     color: var(--muted);
 }
 
-.tech-details-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(min(280px, 100%), 1fr));
-    gap: 10px;
-    margin-top: 10px;
-}
-
-.tech-detail-card {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    min-width: 0;
-    padding: 12px;
+.disclosure-panel {
+    padding: 14px 16px 16px;
     border: 1px solid var(--line);
-    border-radius: var(--radius-sm);
-    background: var(--surface-2);
-    font-size: 0.875rem;
+    border-top: 0;
+    border-radius: 0 0 var(--radius-sm) var(--radius-sm);
 }
 
-.tech-detail-card.full-width { grid-column: 1 / -1; }
+.disclosure-panel > :first-child { margin-top: 0; }
 
-.tech-detail-card small { color: var(--muted); }
+/* Rows and code run edge to edge. */
+.disclosure-panel:is(.is-rows, .is-flush) {
+    padding: 0;
+    overflow: hidden;
+}
+
+.disclosure-panel.is-flush > .tech-value.code {
+    padding: 12px 16px;
+    border-radius: 0;
+}
+
+.disclosure-panel .data-card {
+    border-color: transparent;
+    background: var(--code-bg);
+}
+
+.disclosure-panel .data-card:hover { border-color: color-mix(in srgb, var(--accent-color) 45%, transparent); }
+
+/* Label and value rows, split by hairlines like a small table. */
+.detail-rows {
+    margin: 0;
+    font-size: 0.875rem;
+    line-height: 20px;
+}
+
+.detail-rows > div {
+    display: grid;
+    grid-template-columns: 180px minmax(0, 1fr);
+    border-top: 1px solid var(--line);
+}
+
+.disclosure-panel > .detail-rows:first-child > div:first-child { border-top: 0; }
+
+.detail-rows dt {
+    padding: 9px 0 9px 16px;
+    color: var(--muted);
+    overflow-wrap: anywhere;
+}
+
+.detail-rows dt.is-tag {
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+}
+
+.detail-value {
+    min-width: 0;
+    margin: 0;
+    padding: 9px 16px;
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    color: var(--heading);
+    overflow-wrap: anywhere;
+    transition: background-color 0.15s ease;
+}
+
+.detail-value.is-code {
+    max-height: 260px;
+    overflow: auto;
+    white-space: pre-wrap;
+}
+
+.detail-value.is-copyable:hover { background: color-mix(in srgb, var(--accent-color) 10%, transparent); }
+
+.detail-value.is-copyable:focus-visible { outline-offset: -2px; }
+
+.detail-empty {
+    font-family: var(--font-sans);
+    color: var(--faint);
+}
+
+.detail-heading {
+    padding: 7px 16px;
+    border-top: 1px solid var(--line);
+    background: var(--surface-2);
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--muted);
+}
 
 .tech-value.code {
     margin: 0;
@@ -3873,12 +3914,14 @@ h4::after {
 
     .reported-results td:nth-child(2) { width: auto; }
 
-    .facts { grid-template-columns: 1fr 1fr; }
+    /* Panel rows: label above its value. */
+    .detail-rows > div { grid-template-columns: minmax(0, 1fr); }
 
-    .data-key {
-        max-width: 55%;
-        overflow-wrap: anywhere;
-    }
+    .detail-rows dt { padding: 9px 16px 0; }
+
+    .detail-value { padding: 2px 16px 9px; }
+
+    .facts { grid-template-columns: 1fr 1fr; }
 
     .hdr-row {
         grid-template-columns: minmax(0, 1fr);
