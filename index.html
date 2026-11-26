@@ -28,21 +28,23 @@
       if (festive === "pixel") { const link = document.createElement("link"); link.id = "pixel-font"; link.rel = "stylesheet"; link.href = "https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400..700&display=swap"; document.head.append(link); }
     })();
   </script>
-  <link rel="stylesheet" href="css/base.css">
-  <link rel="stylesheet" href="themes/thanksgiving.css">
-  <link rel="stylesheet" href="themes/christmas.css">
-  <link rel="stylesheet" href="themes/festive.css">
-  <link rel="stylesheet" href="themes/daniel.css">
-  <link rel="stylesheet" href="css/app.css">
-  <link rel="stylesheet" href="css/typing.css">
-  <link rel="stylesheet" href="css/history.css">
-  <link rel="stylesheet" href="css/keyboard.css">
-  <link rel="stylesheet" href="css/sidebar.css">
-  <link rel="stylesheet" href="css/course-map.css">
-  <link rel="stylesheet" href="css/compact.css">
-  <link rel="stylesheet" href="css/layouts.css">
-  <link rel="stylesheet" href="css/profiles.css">
-  <link rel="stylesheet" href="css/today.css">
+  <!-- Every local stylesheet and script carries ?v=<publish time>. The host lets browsers keep files for
+       10 minutes, so bump it on each publish to make a normal reload fetch the new files. -->
+  <link rel="stylesheet" href="css/base.css?v=202611252134">
+  <link rel="stylesheet" href="themes/thanksgiving.css?v=202611252134">
+  <link rel="stylesheet" href="themes/christmas.css?v=202611252134">
+  <link rel="stylesheet" href="themes/festive.css?v=202611252134">
+  <link rel="stylesheet" href="themes/daniel.css?v=202611252134">
+  <link rel="stylesheet" href="css/app.css?v=202611252134">
+  <link rel="stylesheet" href="css/typing.css?v=202611252134">
+  <link rel="stylesheet" href="css/history.css?v=202611252134">
+  <link rel="stylesheet" href="css/keyboard.css?v=202611252134">
+  <link rel="stylesheet" href="css/sidebar.css?v=202611252134">
+  <link rel="stylesheet" href="css/course-map.css?v=202611252134">
+  <link rel="stylesheet" href="css/compact.css?v=202611252134">
+  <link rel="stylesheet" href="css/layouts.css?v=202611252134">
+  <link rel="stylesheet" href="css/profiles.css?v=202611252134">
+  <link rel="stylesheet" href="css/today.css?v=202611252134">
 </head>
 <body>
   <svg class="icon-sprite" aria-hidden="true">
@@ -95,9 +97,9 @@
     <i class="festive-bokeh" style="--x: 7vw; --y: 84vh; --size: 100px; --c: var(--bulb-3); --dx: 30px; --dy: -30px; --dur: 30s; --delay: -10s"></i>
     <i class="festive-bokeh" style="--x: 93vw; --y: 82vh; --size: 110px; --c: var(--bulb-2); --dx: -20px; --dy: -40px; --dur: 32s; --delay: -16s"></i>
     <i class="festive-bokeh" style="--x: 18vw; --y: 30vh; --size: 90px; --c: var(--bulb-3); --dx: 30px; --dy: 30px; --dur: 28s; --delay: -20s"></i>
-    <script src="themes/thanksgiving-scene.js"></script>
-    <script src="themes/christmas-scene.js"></script>
-    <script src="themes/daniel-scene.js"></script>
+    <script src="themes/thanksgiving-scene.js?v=202611252134"></script>
+    <script src="themes/christmas-scene.js?v=202611252134"></script>
+    <script src="themes/daniel-scene.js?v=202611252134"></script>
   </div>
   <div class="pixel-surprise" id="pixel-surprise" aria-hidden="true"></div>
   <div class="finger-check" id="finger-check" aria-hidden="true" hidden></div>
@@ -495,29 +497,29 @@
        indentation, which fills in automatically while typing; every other character, and Return at each
        line end, is typed. Keep lines under about 60 characters and the text plain ASCII. -->
 
-  <script src="data/code-samples.js"></script>
-  <script src="data/passages.js"></script>
-  <script src="js/dom.js"></script>
-  <script src="js/random.js"></script>
-  <script src="js/tips.js"></script>
-  <script src="js/content.js"></script>
-  <script src="js/code.js"></script>
-  <script src="js/courses.js"></script>
-  <script src="js/settings.js"></script>
-  <script src="js/timing.js"></script>
-  <script src="js/theme.js"></script>
-  <script src="js/course-map.js"></script>
-  <script src="js/history.js"></script>
-  <script src="js/keyboard.js"></script>
-  <script src="js/sound.js"></script>
-  <script src="js/practice.js"></script>
-  <script src="js/controls.js"></script>
-  <script src="js/rounds.js"></script>
-  <script src="js/results.js"></script>
-  <script src="js/today.js"></script>
-  <script src="js/typing.js"></script>
-  <script src="themes/daniel.js"></script>
-  <script src="js/menus.js"></script>
-  <script src="js/main.js"></script>
+  <script src="data/code-samples.js?v=202611252134"></script>
+  <script src="data/passages.js?v=202611252134"></script>
+  <script src="js/dom.js?v=202611252134"></script>
+  <script src="js/random.js?v=202611252134"></script>
+  <script src="js/tips.js?v=202611252134"></script>
+  <script src="js/content.js?v=202611252134"></script>
+  <script src="js/code.js?v=202611252134"></script>
+  <script src="js/courses.js?v=202611252134"></script>
+  <script src="js/settings.js?v=202611252134"></script>
+  <script src="js/timing.js?v=202611252134"></script>
+  <script src="js/theme.js?v=202611252134"></script>
+  <script src="js/course-map.js?v=202611252134"></script>
+  <script src="js/history.js?v=202611252134"></script>
+  <script src="js/keyboard.js?v=202611252134"></script>
+  <script src="js/sound.js?v=202611252134"></script>
+  <script src="js/practice.js?v=202611252134"></script>
+  <script src="js/controls.js?v=202611252134"></script>
+  <script src="js/rounds.js?v=202611252134"></script>
+  <script src="js/results.js?v=202611252134"></script>
+  <script src="js/today.js?v=202611252134"></script>
+  <script src="js/typing.js?v=202611252134"></script>
+  <script src="themes/daniel.js?v=202611252134"></script>
+  <script src="js/menus.js?v=202611252134"></script>
+  <script src="js/main.js?v=202611252134"></script>
 </body>
 </html>
