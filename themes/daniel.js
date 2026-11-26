@@ -605,6 +605,7 @@ new MutationObserver(() => {
 
 // Counts typo-free finishes in a row (this session) and plays a surprise for each one.
 function noteFinish(flawless) {
+  dismissFingerCheck();
   flawlessStreak = flawless ? flawlessStreak + 1 : 0;
   if (!flawless) return;
   pixelSurprise();
@@ -627,6 +628,7 @@ function noteSecretKey(event) {
   applyFestiveTheme();
   // The letters of the word were typed into the exercise; start it over so they don't count as typos.
   if (round.endedAt === null && round.position + round.mistakes > 0) startRound(false);
+  else showFingerCheck(round.endedAt === null && welcomePanel.hidden);
   if (settings.festive === "pixel") setTimeout(() => pixelSurprise(pick(["zombie", "wallbreak", "dance"]), "HI DANIEL!"), 150);
 }
 
@@ -713,3 +715,133 @@ function noteCheatKey(event) {
     cheatWin();
   }
 }
+
+// ---- Finger check ------------------------------------------------------------------------------
+// Before each exercise in block world, someone from block world pops up in the bottom corner with a joke about
+// putting fingers on the right keys, and ducks away on the first key. The jokes are silly, but the advice in each
+// one is real and matches the keyboard guide's fingering (content.js, keyboard.js). A line with `keys` only
+// comes up when the exercise has at least one of those keys.
+const fingerWarnings = [
+  // The zombie wants to eat any finger in the wrong place.
+  { who: "zombie", line: "Left fingers on A S D F. Right fingers on J K L ;. Any finger that wanders off is my snack." },
+  { who: "zombie", line: "Feel the little bumps on F and J? Your index fingers live there. Fingers that move out get nibbled." },
+  { who: "zombie", line: "Space is for THUMBS. Press it with any other finger and I bite that finger. Braaains!" },
+  { who: "zombie", line: "After every reach, the finger goes back to the home row. Fingers that don't come home... I find them." },
+  { who: "zombie", line: "Capital letter? Hold Shift with the OTHER hand. Same-hand Shift looks crunchy. Mmm." },
+  { who: "zombie", line: "No peeking at the keys! Peekers get nibbled. Eyes on the screen, find the keys by feel." },
+  { who: "zombie", line: "Your pinkies rest on A and ;. A lazy pinky is a tasty pinky." },
+  { who: "zombie", line: "Curve your fingers like you're holding a tiny apple. Flat fingers look like zombie pancakes." },
+  { who: "zombie", line: "I used the wrong fingers once. Now I have no fingers. Learn from me: A S D F, J K L ;." },
+  { who: "zombie", line: "Typing with one finger? That finger gets VERY tired. And VERY tasty. Use all ten." },
+  { who: "zombie", keys: "qaz", line: "Q, A and Z belong to your left pinky. Use any other finger and I nibble it. Fair is fair." },
+  { who: "zombie", keys: "yhn", line: "Y, H and N are RIGHT index keys. Grab them with your left hand and that hand is lunch." },
+  { who: "zombie", keys: "b", line: "B is a LEFT index key, even if it looks far. Right hand reaching for B? CHOMP." },
+  { who: "zombie", keys: "4567", line: "4 and 5: left index. 6 and 7: right index. Mix them up and I start counting your fingers." },
+  { who: "zombie", keys: "\n", line: "Return is the right pinky's job. Slap it with your whole hand and I take the hand. Kidding. Mostly." },
+  { who: "baby", line: "Me small. Me still bite. Left pinky on A, right pinky on ;. Now!" },
+  { who: "baby", line: "Me so hungry. Me only eat wrong fingers. Keep yours on the home row and me stay hungry. Sad." },
+  // The dolphin has no fingers and can't believe you aren't using yours properly.
+  { who: "dolphin", line: "If I had fingers, I'd keep them on the home row all day. You HAVE fingers! Ten of them!" },
+  { who: "dolphin", line: "I type with my NOSE and I still hit the right keys. You have fingers. Index fingers on F and J!" },
+  { who: "dolphin", line: "I'd trade the whole ocean for ten fingers. And I'd put them on A S D F and J K L ;. Every time." },
+  { who: "dolphin", line: "EEE EEE! That means: thumbs on Space. Not your index finger. THUMBS. I'd give anything for thumbs." },
+  { who: "dolphin", line: "You have two pinkies and you let them do nothing? I have ZERO pinkies. Zero!" },
+  { who: "dolphin", line: "My flippers can't feel the bumps on F and J. Your fingers can! That's how you find home without looking." },
+  { who: "dolphin", line: "If I had fingers, I'd never look down at the keyboard. Eyes on the screen, like a pro. Hint hint." },
+  { who: "dolphin", keys: "swxlo", line: "S, W and X are left ring finger keys. L and O are right ring finger keys. I don't even have ring fingers. You have two!" },
+  { who: "dolphin", keys: "p;", line: "If I had a right pinky, I'd press P and ; with it every single time. You have one. Use it!" },
+  { who: "dolphin", keys: "ei", line: "The E key is for your left middle finger, the I key for your right. I'd use mine if I had any. Sad flippers." },
+  // The pig always uses the correct hooves, and wants you to know it.
+  { who: "pig", line: "I always use the correct hooves. Left hoof on A S D F, right hoof on J K L ;. Very proper. Oink." },
+  { who: "pig", line: "Even I press Space with my thumb-hooves. Thumbs on Space, please. Oink." },
+  { who: "pig", line: "A proper pig goes back to the home row after every reach. Like going back to the mud. Ahh." },
+  { who: "pig", line: "Pigs never look at the keyboard. We type by feel. And by smell. You can skip the smell part." },
+  { who: "pig", line: "Capital L? Left Shift. Capital A? Right Shift. Always the opposite hoof. Easy peasy, oinky squeezy." },
+  { who: "pig", line: "Snout check: index fingers on the F and J bumps. Feel them? Excellent. Oink of approval." },
+  { who: "pig", line: "Slow and correct beats fast and sloppy. Mud should be sloppy. Fingers should not." },
+  { who: "pig", line: "Wrists straight, fingers curved, shoulders relaxed. I'm a PIG and I do it. What's your excuse?" },
+  { who: "pig", keys: "cm", line: "C is left middle finger. M is right index finger. I never mix them up, because I'm perfect. Oink." },
+  { who: "pig", keys: ",.", line: "Comma: right middle finger. Period: right ring finger. Pig grammar is VERY proper." },
+  { who: "pig", keys: "/'", line: "Slash and quote both belong to the right pinky. My hooves never miss. Well, almost never." },
+  // The rest of the gang.
+  { who: "chick", line: "Peep! Every finger has its own keys. Don't make one finger do all the work. Peep!" },
+  { who: "chick", keys: "rtfgvb", line: "Peep! R, T, F, G, V and B all belong to your left index finger. Busy little finger!" },
+  { who: "chick", keys: "yuhjnm", line: "Peep peep! Y, U, H, J, N and M are all right index finger keys. The busiest finger in town!" },
+  { who: "slime", line: "Boing! Bouncing is for slimes. Fingers tap lightly, then spring right back to the home row." },
+  { who: "villager", keys: "x", line: "Hrrm. Trade offer: you press X with your left ring finger, I give you one emerald. Hmmm." },
+  { who: "villager", keys: "z", line: "Hmmm. Z is the left pinky's key. Not the ring finger. Hrrrm." },
+  { who: "dragon", line: "RAWR! I guard treasure. You guard the home row. Fingers on A S D F and J K L ; before you start!" },
+  { who: "dragon", keys: "1234567890", line: "Numbers: reach up from the home row with the same finger. 1 is left pinky, 0 is right pinky. RAWR!" },
+  { who: "knight", line: "By my honour: thumbs on Space, index fingers on F and J, and NO peeking. Onward!" },
+  { who: "knight", keys: "-=[]", line: "Hark! Hyphen, equals and the brackets belong to the right pinky. A long reach, but a noble one." }
+];
+// Everyone faces right, toward their speech bubble.
+const fingerCast = {
+  zombie: () => pixelSprite("zombie", 4, ["zombie1", "zombie2"]),
+  baby: () => facingRight(walker("bwalk", 3.6, ".4s")),
+  dolphin: () => facingRight(pixelSprite("dolphin", 3.4)),
+  pig: () => facingRight(blockPig(3.2, { walk: false, shades: true })),
+  chick: () => hopping("chick", 4.4),
+  slime: () => pixelSprite("slime", 6),
+  villager: () => facingRight(pixelSprite("vwalk1", 3)),
+  dragon: () => pixelSprite("dragon", 3, ["dragonup", "dragondown"]),
+  knight: () => pixelSprite("rider", 3.6, ["rider1", "rider2"])
+};
+const fingerCheckBox = get("finger-check");
+const usedWarnings = new Set();
+let lastWarner = null;
+
+// A line that hasn't come up yet (all of them once every line has), from someone other than last time.
+// Lines about this exercise's own keys come up a bit more often than their share.
+function takeFingerWarning() {
+  const text = round.characters.toLowerCase();
+  const fits = fingerWarnings.filter((warning) => !warning.keys || [...warning.keys].some((key) => text.includes(key)));
+  let fresh = fits.filter((warning) => !usedWarnings.has(warning));
+  if (fresh.length === 0) {
+    fits.forEach((warning) => usedWarnings.delete(warning));
+    fresh = fits;
+  }
+  const someoneNew = fresh.filter((warning) => warning.who !== lastWarner);
+  if (someoneNew.length) fresh = someoneNew;
+  const aboutTheseKeys = fresh.filter((warning) => warning.keys);
+  const warning = aboutTheseKeys.length && chance(.4) ? pick(aboutTheseKeys) : pick(fresh);
+  usedWarnings.add(warning);
+  lastWarner = warning.who;
+  return warning;
+}
+
+// Called as each exercise starts; `show` is false while the welcome choice is up.
+function showFingerCheck(show = true) {
+  if (!show || settings.festive !== "pixel") {
+    fingerCheckBox.hidden = true;
+    return;
+  }
+  const { who, line } = takeFingerWarning();
+  const say = element("div", "finger-check-say");
+  say.append(element("strong", "finger-check-title", "FINGER CHECK!"), element("span", "", line));
+  const speaker = element("div", `finger-check-who ${who}`);
+  speaker.append(fingerCast[who]());
+  fingerCheckBox.classList.remove("leaving");
+  // Hiding it first, with a layout in between, restarts the pop-up animation when one is already showing.
+  fingerCheckBox.hidden = true;
+  fingerCheckBox.getBoundingClientRect();
+  fingerCheckBox.replaceChildren(speaker, say);
+  fingerCheckBox.hidden = false;
+}
+
+// The first key of the exercise (or leaving it) sends whoever it was back down.
+function dismissFingerCheck() {
+  if (fingerCheckBox.hidden || fingerCheckBox.classList.contains("leaving")) return;
+  if (matchMedia("(prefers-reduced-motion: reduce)").matches) fingerCheckBox.hidden = true;
+  else fingerCheckBox.classList.add("leaving");
+}
+fingerCheckBox.addEventListener("animationend", (event) => {
+  if (event.animationName !== "finger-check-out") return;
+  fingerCheckBox.hidden = true;
+  fingerCheckBox.classList.remove("leaving");
+});
+// The course map and history pages cover the exercise, so the finger check goes too.
+const coverWatch = new MutationObserver(() => {
+  if (!library.hidden || !get("history").hidden) dismissFingerCheck();
+});
+for (const page of [library, get("history")]) coverWatch.observe(page, { attributes: true, attributeFilter: ["hidden"] });

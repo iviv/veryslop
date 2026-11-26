@@ -53,6 +53,7 @@ function handleDelete(all) {
 }
 
 function handleAttempt(character) {
+  dismissFingerCheck();
   const now = markActivity();
   const target = round.characters[round.position];
 

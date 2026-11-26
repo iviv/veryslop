@@ -202,6 +202,8 @@ function startRound(moveFocus = true) {
   document.querySelector(".shortcuts").classList.toggle("welcoming", welcoming);
   renderKeyboard();
   if (drill) renderProgressCard();
+  // Block world reminds you where your fingers go (themes/daniel.js).
+  showFingerCheck(!welcoming);
   if (welcoming) {
     typingArea.hidden = true;
     get("enter-hint").textContent = "start the basics";
