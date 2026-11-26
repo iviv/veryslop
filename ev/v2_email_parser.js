@@ -15,6 +15,7 @@
     root.parseMailDate = modules.parseMailDate;
     root.MimeParser = modules.MimeParser;
     root.HeaderInsights = modules.HeaderInsights;
+    root.SendingServices = modules.SendingServices;
     root.DeliveryRecords = modules.DeliveryRecords;
     root.RelayParser = modules.RelayParser;
     root.RelayDTO = modules.RelayDTO;
@@ -559,7 +560,7 @@
       const entry = receiving && hops.find(hop => hop.org === receiving && hop.fromOrg && hop.fromOrg !== receiving);
       const next = entry && hops.find(hop => hop.index > entry.index);
       const forgedHops = next && next.org === receiving ? [{ index: next.index, by: next.by, entryBy: entry.by, entryFrom: entry.from }] : [];
-      const result = { records, receiving, forgedHops, hops, trusted: name => records.filter(record => record.trusted && record.name === name) };
+      const result = { records, receiving, entry: entry || null, forgedHops, hops, trusted: name => records.filter(record => record.trusted && record.name === name) };
       Object.defineProperty(email, 'deliveryRecords', { value: result, configurable: true, writable: true });
       return result;
     }
@@ -859,6 +860,145 @@
     }
   }
 
+  // --- Sending services: companies whose servers send mail for others (SendGrid, Mailchimp, Amazon SES, ...) ---
+  // Each leaves traces: its own DKIM signature, its servers in the Received headers, its bounce domain in Return-Path,
+  // headers of its own. A verified signature, a passing SPF check or the hop your provider recorded confirm it; the
+  // sender's software writes everything else. network marks the ones other platforms send through (Klaviyo through SendGrid).
+  const SendingServices = (() => {
+    const services = [
+      { name: 'SendGrid', network: true, domains: ['sendgrid.net', 'sendgrid.info', 'sendgrid.com'], headers: /^x-(sg|sendgrid)-/, messageId: /^geopod-ismtpd-/ },
+      { name: 'Mailgun', network: true, domains: ['mailgun.org', 'mailgun.net', 'mailgun.com'], headers: /^x-mailgun-/ },
+      { name: 'Amazon SES', network: true, domains: ['amazonses.com'], headers: /^x-ses-outgoing$/, feedback: 'amazonses' },
+      { name: 'SparkPost', network: true, domains: ['sparkpostmail.com', 'sparkpost.com'], messageId: /\.sparkpost$/ },
+      { name: 'Postmark', network: true, domains: ['mtasv.net', 'postmarkapp.com'], headers: /^x-pm-(rcpt|tag|message-stream)$/ },
+      { name: 'Mailchimp Transactional', network: true, domains: ['mandrillapp.com', 'mandrill.com'], headers: /^x-mandrill-/ },
+      { name: 'Mailchimp', domains: ['mcsv.net', 'mcdlv.net', 'rsgsv.net', 'mailchimpapp.com', 'mailchimpapp.net', 'list-manage.com', 'mailchimp.com'],
+        headers: /^x-mc-/, feedback: 'mc', mailer: /^mailchimp mailer/i },
+      { name: 'Salesforce Marketing Cloud', domains: ['mc.salesforce.com', 'exacttarget.com', 'exct.net'], headers: /^x-sfmc-/, feedback: 'sfmktgcld', messageId: /\.xt\.local$/ },
+      { name: 'Salesforce', domains: ['salesforce.com', 'sfdc.net'], headers: /^x-sfdc-/ },
+      { name: 'Klaviyo', domains: ['klaviyomail.com', 'klaviyo.com'], headers: /^x-(kmail|klaviyo)-/, feedback: 'kl' },
+      { name: 'HubSpot', domains: ['hubspotemail.net', 'hubspot.com'], headers: /^x-(hs|hubspot)-/, feedback: 'hubspot' },
+      { name: 'Shopify', domains: ['shopify.com', 'shopifyemail.com'], feedback: 'shopify' },
+      { name: 'Brevo', domains: ['brevo.com', 'sendinblue.com', 'mailin.fr'], pattern: /^sendib[mt]\d*\.com$/, headers: /^x-(mailin|sib)-/ },
+      { name: 'Constant Contact', domains: ['constantcontact.com', 'ccsend.com', 'roving.com'] },
+      { name: 'Campaign Monitor', domains: ['createsend.com'], pattern: /^(cmail|createsend)\d+\.com$/ },
+      { name: 'Mailjet', domains: ['mailjet.com'], headers: /^x-(mj|mailjet)-/ },
+      { name: 'MailerLite', domains: ['mailerlite.com'], pattern: /^mlsend\d*\.com$/ },
+      { name: 'Marketo', domains: ['mktomail.com', 'mktdns.com', 'marketo.org', 'marketo.com'] },
+      { name: 'Oracle Eloqua', domains: ['en25.com', 'eloqua.com'], headers: /^x-elq/ },
+      { name: 'Customer.io', domains: ['customeriomail.com', 'customer.io'] },
+      { name: 'Zoho', domains: ['zeptomail.com', 'zcsend.net', 'maillist-manage.com'] },
+      { name: 'Intercom', domains: ['intercom-mail.com', 'intercom.io'] },
+      { name: 'Zendesk', domains: ['zendesk.com'] }
+    ];
+    // Strongest first. Only the first three confirm the service.
+    const strength = { signed: 4, spf: 3, received: 2, pending: 1, claimed: 0 };
+
+    // The service a host belongs to; the most specific domain wins (mc.salesforce.com over salesforce.com).
+    function byDomain(host) {
+      const name = String(host || '').toLowerCase().replace(/\.$/, '');
+      if (!name) return null;
+      let best = null;
+      for (const service of services) {
+        for (const domain of service.domains || []) {
+          if ((name === domain || name.endsWith('.' + domain)) && domain.length > (best?.domain.length ?? -1)) best = { service, domain };
+        }
+      }
+      if (best) return best.service;
+      const org = suffixes.registrableDomain(name);
+      return (org && services.find(service => service.pattern?.test(org))) || null;
+    }
+
+    function forHeader(name) {
+      const key = String(name).toLowerCase();
+      return services.find(service => service.headers?.test(key)) || null;
+    }
+
+    // A Received header's "from" clause: the name the sending server gave itself (HELO), and the names in the
+    // parentheses, which the receiving server looked up from the sending IP.
+    function fromClause(value) {
+      const clause = String(value).replace(/\s+/g, ' ').match(/^\s*from\s+(\S+)\s*(\([^)]*\))?/i);
+      if (!clause) return { helo: null, looked: [] };
+      const names = text => (text.match(/(?:[a-z0-9-]+\.)+[a-z][a-z0-9-]*/gi) || []).map(name => name.toLowerCase());
+      return { helo: names(clause[1])[0] || null, looked: clause[2] ? names(clause[2]) : [] };
+    }
+
+    // dkim: [{ domain, status }]: 'pass', 'expired' or 'headers' (the signature verifies, but has expired or covers only the
+    // headers), 'pending', or anything else for one that doesn't verify. spf: { result, domains: the domain checked, then
+    // each include it matched through }.
+    function detect(email, { dkim = [], spf = null } = {}) {
+      const headers = email.headers || {};
+      const values = name => [getHeader(headers, name)].flat().filter(value => typeof value === 'string');
+      const from = parseMailboxes(values('From')[0] || '');
+      // Mail a company signs and sends itself isn't a service sending for someone else.
+      const own = from.length === 1 ? suffixes.registrableDomain(from[0].domain) : null;
+      const serviceOf = host => {
+        const service = byDomain(host);
+        return service && suffixes.registrableDomain(host) !== own ? service : null;
+      };
+      const found = new Map();
+      const add = (service, item) => {
+        if (!service) return;
+        if (!found.has(service.name)) found.set(service.name, { name: service.name, network: Boolean(service.network), evidence: [] });
+        const evidence = found.get(service.name).evidence;
+        if (!evidence.some(other => other.kind === item.kind && other.text === item.text && other.source === item.source)) evidence.push(item);
+      };
+      const claimed = (service, source) => add(service, { kind: 'claimed', source });
+
+      for (const signature of dkim) {
+        const service = serviceOf(signature.domain);
+        const verifies = { pass: '', expired: ' but has expired', headers: ' for the headers' }[signature.status];
+        if (verifies !== undefined) {
+          add(service, { kind: 'signed', text: `Signed by ${signature.domain}`, ...(verifies && { detail: `The signature by ${signature.domain} verifies${verifies}` }) });
+        } else if (signature.status === 'pending') add(service, { kind: 'pending', text: `Checking the signature by ${signature.domain}` });
+        else claimed(service, 'DKIM-Signature');
+      }
+      if (spf?.result === 'pass') {
+        const [checked] = spf.domains || [];
+        for (const domain of spf.domains || []) {
+          const service = serviceOf(domain);
+          if (!service || found.get(service.name)?.evidence.some(item => item.kind === 'spf')) continue;
+          add(service, { kind: 'spf', text: `SPF passes via ${suffixes.registrableDomain(domain) || domain}`,
+            detail: domain === checked ? `SPF passes for ${domain}` : `SPF passes for ${checked} through ${domain}` });
+        }
+      }
+      const returnPath = parseMailboxes(values('Return-Path')[0] || '')[0];
+      if (returnPath) claimed(serviceOf(returnPath.domain), 'Return-Path');
+
+      // Your provider wrote the hop where it took the message from outside; the ones below it came with the message.
+      const { hops, entry } = DeliveryRecords.assess(email);
+      for (const hop of hops) {
+        if (entry && hop.index < entry.index) continue;
+        const { helo, looked } = fromClause(hop.value);
+        if (hop === entry) {
+          for (const host of looked) {
+            add(serviceOf(host), { kind: 'received', text: `Received from ${suffixes.registrableDomain(host) || host}`, detail: `${hop.by} took it from ${host}` });
+          }
+          claimed(serviceOf(helo), 'Received');
+        } else {
+          for (const host of [hop.by, helo, ...looked]) claimed(serviceOf(host), 'Received');
+        }
+      }
+
+      const messageId = values('Message-ID')[0]?.match(/@([^>\s]+)/)?.[1]?.toLowerCase();
+      if (messageId) claimed(serviceOf(messageId) || services.find(service => service.messageId?.test(messageId)), 'Message-ID');
+      for (const name of Object.keys(headers)) claimed(forHeader(name), name);
+      for (const value of [...values('Feedback-ID'), ...values('X-Feedback-ID')]) {
+        const sender = value.split(':').pop().trim().toLowerCase();
+        claimed(services.find(service => service.feedback === sender), 'Feedback-ID');
+      }
+      for (const value of values('X-Mailer')) claimed(services.find(service => service.mailer?.test(value)), 'X-Mailer');
+
+      // A platform first, then the network it sent through; each by its strongest evidence.
+      return [...found.values()].map(service => {
+        service.evidence.sort((a, b) => strength[b.kind] - strength[a.kind]);
+        return { ...service, best: service.evidence[0], confirmed: strength[service.evidence[0].kind] >= strength.received };
+      }).sort((a, b) => a.network - b.network || strength[b.best.kind] - strength[a.best.kind]);
+    }
+
+    return { services, byDomain, forHeader, detect };
+  })();
+
   // --- Header insights: what a header is for, how to group them, spam verdicts and warning signs ---
   const HeaderInsights = (() => {
     // RFC 5322 allows at most one of each of these.
@@ -872,7 +1012,7 @@
       { id: 'spam', title: 'Spam filter verdicts', match: name => spamHeader.test(name) },
       { id: 'route', title: 'Route', match: name => /^(received|x-received|x-originating-ip|x-sender-ip|x-forwarded-to|x-forwarded-for)$/.test(name) },
       { id: 'list', title: 'Mailing list and bulk mail', match: name => /^(list-[a-z-]+|precedence|feedback-id|x-feedback-id|auto-submitted|x-auto-response-suppress|x-report-abuse(-to)?|x-complaints-to|x-csa-complaints|x-abuse[a-z-]*)$/.test(name) },
-      { id: 'service', title: 'Sending software and service', match: name => /^(x-mailer|user-agent|x-mailgun-[a-z-]+|x-sg-[a-z-]+|x-ses-[a-z-]+|x-sfmc-[a-z-]+|x-job|x-mc-[a-z-]+|x-mandrill-[a-z-]+|x-pm-[a-z-]+|x-sid-[a-z-]+|x-campaign[a-z-]*|x-hs-[a-z-]+|x-klaviyo-[a-z-]+|x-sender-id|x-sendgrid-[a-z-]+)$/.test(name) },
+      { id: 'service', title: 'Sending software and service', match: name => /^(x-mailer|user-agent|x-mailgun-[a-z-]+|x-sg-[a-z-]+|x-ses-[a-z-]+|x-sfmc-[a-z-]+|x-job|x-mc-[a-z-]+|x-mandrill-[a-z-]+|x-pm-[a-z-]+|x-sid-[a-z-]+|x-campaign[a-z-]*|x-hs-[a-z-]+|x-klaviyo-[a-z-]+|x-sender-id|x-sendgrid-[a-z-]+)$/.test(name) || Boolean(SendingServices.forHeader(name)) },
       { id: 'microsoft', title: 'Microsoft Exchange internals', folded: true, match: name => /^x-(ms|microsoft|forefront)-|^x-incomingtopheadermarker$|^x-eoptenantattributedmessage$/.test(name) },
       { id: 'google', title: 'Google internals', folded: true, match: name => /^x-(gm|google)-/.test(name) },
       { id: 'other', title: 'Other', match: () => true }
@@ -951,10 +1091,8 @@
       if (/^list-/.test(key)) return 'Mailing list information.';
       if (/^content-/.test(key)) return 'Describes the body\'s format.';
       if (/^x-spam-/.test(key)) return 'Written by a spam filter, usually SpamAssassin.';
-      const services = [[/^x-mailgun-/, 'Mailgun'], [/^x-sg-|^x-sendgrid-/, 'SendGrid'], [/^x-ses-/, 'Amazon SES'], [/^x-sfmc-/, 'Salesforce Marketing Cloud'],
-        [/^x-mc-|^x-mandrill-/, 'Mailchimp'], [/^x-pm-/, 'Postmark'], [/^x-hs-/, 'HubSpot'], [/^x-klaviyo-/, 'Klaviyo']];
-      const service = services.find(([pattern]) => pattern.test(key));
-      if (service) return `Sending details from ${service[1]}.`;
+      const service = SendingServices.forHeader(key);
+      if (service) return `Sending details from ${service.name}.`;
       return null;
     }
 
@@ -1067,7 +1205,7 @@
     return { singletons, groups, category, describe, spamVerdicts, anomalies };
   })();
 
-  const exports = { EmailDTO, EmailParser, parseEmail, decodeMimeWords, EmailAddress, IpAddress, parseMailDate, MimeParser, HeaderInsights, DeliveryRecords, RelayDTO, RelayParser, ServerValidationDTO, ServerValidationParser };
+  const exports = { EmailDTO, EmailParser, parseEmail, decodeMimeWords, EmailAddress, IpAddress, parseMailDate, MimeParser, HeaderInsights, SendingServices, DeliveryRecords, RelayDTO, RelayParser, ServerValidationDTO, ServerValidationParser };
 
   if (dkimModule) {
     Object.assign(exports, dkimModule);

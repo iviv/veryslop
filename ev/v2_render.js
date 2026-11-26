@@ -669,7 +669,7 @@ async function processRawEmail(input, run, source = null) {
         summaryState.arc = null;
         summaryState.reported = reportedAtDelivery(email);
         summaryState.spam = HeaderInsights.spamVerdicts(headerFieldList(email));
-        Object.assign(summaryState, { bimi: null, dmarcDto: null, logoImg: null, logoFailed: false,
+        Object.assign(summaryState, { bimi: null, dmarcDto: null, spfDto: null, logoImg: null, logoFailed: false,
             contentSignals: [], domainSignals: [], domainDone: false, glance: null, links: null, attachments: [] });
         for (const id of Object.keys(jumpState)) delete jumpState[id];
         for (const id of ['dkim', 'spf', 'dmarc', 'arc']) jumpState['section-' + id] = { result: 'pending', note: 'checking' };
@@ -1297,6 +1297,55 @@ function mailboxHtml(value, mark = {}) {
         + (mailboxes.length > 1 ? `<span class="summary-fact-more" title="${escapeHtml(mailboxes.map(box => box.address).join(', '))}">+${mailboxes.length - 1} more</span>` : '');
 }
 
+// --- Sending service: the well-known company whose servers sent the message, and what shows it ---
+function sendingServices(email) {
+    const results = email.dkimResults;
+    const dkim = (email.dkim || []).map((signature, index) => {
+        const result = results?.[index]?.result;
+        const status = !results ? 'pending' : result?.valid ? 'pass'
+            : dkimHeadersVerified(result || {}) === true ? (result.status === 'expired' ? 'expired' : 'headers') : 'unverified';
+        return { domain: signature.tags?.d, status };
+    }).filter(signature => signature.domain);
+    const spf = summaryState.spfDto;
+    return SendingServices.detect(email, { dkim, spf: spf && {
+        result: spf.result, domains: [spf.domain, ...(spf.matchChain || []).map(step => step.domain)].filter(Boolean) } });
+}
+
+const serviceSections = { signed: 'section-dkim', pending: 'section-dkim', spf: 'section-spf', received: 'section-relay', claimed: 'section-headers' };
+
+function namesList(names) {
+    return names.length <= 2 ? names.join(' and ') : `${names.slice(0, 2).join(', ')} and ${names.length - 2} more`;
+}
+
+// The strongest sign that the service sent it, and every sign for the tooltip.
+function serviceEvidence(service) {
+    const claims = [...new Set(service.evidence.filter(item => item.kind === 'claimed').map(item => item.source))];
+    if (service.best.kind === 'claimed') {
+        return { short: `Named only in ${namesList(claims)}`,
+            text: `Only headers the sender's software writes name ${service.name} (${claims.join(', ')}), so it isn't confirmed` };
+    }
+    const shown = [...new Set(service.evidence.filter(item => item.kind !== 'claimed').map(item => item.detail || item.text))];
+    return { short: service.best.text + (service.best.kind === 'pending' ? '…' : ''),
+        text: shown.join('; ') + (claims.length ? `; also named in ${claims.join(', ')}` : '') };
+}
+
+function servicesHtml(services) {
+    const [first, second] = services;
+    const joiner = second?.network && !first.network ? 'through' : 'and';
+    return `<span class="summary-name" title="Anyone can open an account with these services, so this shows whose servers sent the message, not who the sender is.">${escapeHtml(first.name)}</span>`
+        + (second ? `<span class="summary-fact-more">${joiner} ${escapeHtml(second.name)}</span>` : '')
+        + (services.length > 2 ? `<span class="summary-fact-more" title="${escapeHtml(services.slice(2).map(service => service.name).join(', '))}">+${services.length - 2} more</span>` : '');
+}
+
+function serviceFlags(services) {
+    const shown = services.slice(0, 2);
+    const named = (service, text) => shown.length > 1 ? `${service.name}: ${/^[A-Z][a-z]/.test(text) ? text[0].toLowerCase() + text.slice(1) : text}` : text;
+    return shown.map(service => {
+        const evidence = serviceEvidence(service);
+        return { level: 'note', short: named(service, evidence.short), text: named(service, evidence.text), section: serviceSections[service.best.kind] };
+    });
+}
+
 function factFlags(flags) {
     if (!flags.length) return '';
     let previous = null;
@@ -1393,6 +1442,7 @@ function displaySummary() {
     const fromHtml = mailboxHtml(from, {
         domain: worst(fromFlags.filter(flag => flag.mark === 'domain')), name: worst(fromFlags.filter(flag => flag.mark === 'name'))
     });
+    const services = sendingServices(email);
     const sentFlags = flagsFor('sent');
     const sentHtml = !date ? '<span class="summary-fact-more">Unknown</span>'
         : Number.isNaN(sentAt) ? `<span class="mono summary-addr${sentFlags.length ? ` summary-flagged is-${worst(sentFlags)}` : ''}">${escapeHtml(date)}</span>`
@@ -1425,6 +1475,7 @@ function displaySummary() {
         ${glanceReasonList(glance, rows)}
         <dl class="summary-facts">
             ${factRow('From', fromHtml, fromFlags)}
+            ${services.length ? factRow('Sent via', servicesHtml(services), serviceFlags(services)) : ''}
             ${factRow('To', mailboxHtml(to))}
             ${showReplyTo ? factRow('Reply-To', mailboxHtml(replyTo, { domain: replyElsewhere ? 'warn' : null }), replyFlags) : ''}
             ${factRow('Sent', sentHtml, sentFlags)}
@@ -1474,7 +1525,10 @@ async function buildReport() {
     const fromDomain = fromMailboxes.length === 1 ? fromMailboxes[0].domain : null;
     const sentAt = header('Date') ? parseMailDate(header('Date')) : NaN;
     const lines = ['Email authentication report', ''];
-    lines.push(`Subject:  ${header('Subject') || '(No subject)'}`, `From:     ${header('From') || 'Unknown'}`, `To:       ${header('To') || 'Unknown'}`);
+    lines.push(`Subject:  ${header('Subject') || '(No subject)'}`, `From:     ${header('From') || 'Unknown'}`);
+    const services = sendingServices(email);
+    if (services.length) lines.push(`Sent via: ${services.map(service => `${service.name} (${serviceEvidence(service).short.replace(/…$/, '')})`).join(', ')}`);
+    lines.push(`To:       ${header('To') || 'Unknown'}`);
     if (header('Reply-To')) lines.push(`Reply-To: ${header('Reply-To')}`);
     lines.push(`Sent:     ${Number.isNaN(sentAt) ? header('Date') || 'Unknown' : new Date(sentAt).toLocaleString()}`);
     if (email.headersOnly) lines.push('', 'Only headers were provided; checks that need the body were skipped.');
@@ -4162,6 +4216,7 @@ async function runVerification(email, run) {
         .then(result => {
             if (run === latestRun) {
                 displaySpf(result);
+                summaryState.spfDto = result;
                 setSummaryCheck('spf', offlineStatus(result.result), spfSummaryNote(result), result.domain || null);
                 markRelaySpfIp(result.senderIp);
             }
