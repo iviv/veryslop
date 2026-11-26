@@ -184,7 +184,7 @@ function startRound(moveFocus = true) {
 
   const spaceInstruction = round.code
     ? " Press Return at ↵ for each new line."
-    : !passage && round.characters.includes(" ") ? " Type Space at the dot." : "";
+    : !passage && round.characters.includes(" ") ? " Type Space between words." : "";
   const deleteInstruction = settings.correction ? " Press Delete to remove typos before you continue." : "";
   get("typing-instructions").textContent = `Type each character in order.${spaceInstruction}${deleteInstruction} Escape resets this ${attempt}.`;
   renderTypoHandling();

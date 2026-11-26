@@ -38,10 +38,13 @@
 .character.space { position: relative; width: .85ch; }
 .character.space::before { content: "·"; position: absolute; inset: 0; visibility: hidden; }
 .character.space.current::before, .chunk:last-child .character.space:last-child::before { visibility: visible; }
-/* Outside book passages, every space still to type shows as a faint dot, so each one reads as a key to
-   press; the one at the cursor is full strength, and typed ones clear. */
-.prompt:not(.prose) .character.space:not(.done)::before { visibility: visible; color: var(--muted-2); opacity: .5; }
-.prompt:not(.prose) .character.space.current::before { color: inherit; opacity: 1; }
+/* In normal practice spaces are plain gaps: no dot, even at the cursor, whose highlight alone marks the
+   space to type. */
+.prompt:not(.prose, .code) .character.space::before { visibility: hidden; }
+/* In code, every space still to type shows as a faint dot, so each one reads as a key to press; the one
+   at the cursor is full strength, and typed ones clear. */
+.prompt.code .character.space:not(.done)::before { visibility: visible; color: var(--muted-2); opacity: .5; }
+.prompt.code .character.space.current::before { color: inherit; opacity: 1; }
 .character.space.done::before { visibility: hidden; }
 .character.done { color: var(--typed); }
 .character.current { color: var(--accent-ink); background: var(--accent-soft); box-shadow: inset 0 -3px 0 var(--accent); }
