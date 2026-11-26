@@ -140,6 +140,7 @@ function stopClock() {
 function pauseClock() {
   round.activeMs = activeTime();
   round.lastKeyAt = null;
+  round.lastCorrectAt = null;
   stopClock();
 }
 

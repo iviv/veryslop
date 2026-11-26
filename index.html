@@ -42,6 +42,7 @@
   <link rel="stylesheet" href="css/compact.css">
   <link rel="stylesheet" href="css/layouts.css">
   <link rel="stylesheet" href="css/profiles.css">
+  <link rel="stylesheet" href="css/today.css">
 </head>
 <body>
   <svg class="icon-sprite" aria-hidden="true">
@@ -124,6 +125,29 @@
         </div>
       </div>
       <div class="topbar-actions">
+        <div class="today-menu">
+          <button class="button icon-button today-button" id="today-button" type="button" aria-haspopup="dialog" aria-expanded="false" aria-controls="today-panel">
+            <span class="today-ring" aria-hidden="true"></span>
+          </button>
+          <div class="today-panel" id="today-panel" role="dialog" aria-labelledby="today-panel-title" hidden>
+            <p class="today-panel-title" id="today-panel-title">Today</p>
+            <div class="today-progress" id="today-progress">
+              <p class="today-figure" id="today-figure"></p>
+              <div class="bar" aria-hidden="true"><div class="bar-fill" id="today-fill"></div></div>
+              <p class="today-meta" id="today-meta"></p>
+            </div>
+            <div class="today-goal-row">
+              <p class="today-goal-label" id="daily-goal-label">Daily goal <small>minutes</small></p>
+              <div class="segmented today-goals" id="today-goals" role="group" aria-labelledby="daily-goal-label"></div>
+            </div>
+            <div class="today-warmup">
+              <div class="today-warmup-heading"><h3>Warm-up</h3><span id="warmup-estimate"></span></div>
+              <p class="today-warmup-note" id="warmup-note"></p>
+              <ol class="warmup-steps" id="warmup-steps"></ol>
+              <button class="button primary full" id="start-warmup" type="button">Start warm-up</button>
+            </div>
+          </div>
+        </div>
         <button class="button icon-button" id="top-history" type="button" aria-pressed="false" aria-label="History and stats" title="History and stats"><svg class="icon" aria-hidden="true"><use href="#i-history"></use></svg></button>
         <div class="segmented layout-switch" role="group" aria-label="Layout">
           <button class="segment" type="button" data-layout-option="sidebar" aria-pressed="true" title="Layout A · details in the sidebar" aria-label="Layout A, details in the sidebar"><svg class="icon" aria-hidden="true"><use href="#i-layout-sidebar"></use></svg>A</button>
@@ -196,6 +220,7 @@
             <div class="stat"><dt>Keys/min</dt><dd id="speed">—</dd></div>
             <div class="stat"><dt>Mistakes</dt><dd id="mistakes">0</dd></div>
             <div class="stat"><dt>Time</dt><dd id="elapsed">0:00</dd></div>
+            <div class="stat stat-ghost" id="ghost-stat" title="Compared with a marker that moves at your best pace for this exercise" hidden><dt id="ghost-label">best pace</dt><dd id="ghost-value">—</dd></div>
             <div class="stat stat-budget" id="budget-stat" hidden><dt id="budget-label">typos left</dt><dd id="budget-value">—</dd></div>
           </dl>
           <div class="typing-area" id="typing-area" tabindex="0" role="group" aria-label="Practice prompt" aria-describedby="typing-instructions">
@@ -337,6 +362,11 @@
             </div>
             <p class="field-help" id="typo-limit-help"></p>
           </div>
+          <div id="ghost-settings">
+            <div class="divider"></div>
+            <button class="switch-button settings-switch" id="toggle-ghost" type="button" role="switch" aria-checked="true" aria-describedby="ghost-help"><span class="switch" aria-hidden="true"></span>Race your best</button>
+            <p class="field-help" id="ghost-help">A marker moves through the prompt at your best pace for this exercise, from runs at 95% accuracy or better.</p>
+          </div>
         </section>
 
         <section class="card side-card" aria-labelledby="misses-title">
@@ -433,15 +463,19 @@
           <div class="section-heading">
             <h2 class="section-title" id="keys-title">Keys <small>All time</small></h2>
             <p class="card-meta" id="keys-meta"></p>
+            <div class="segmented keys-mode" id="keys-mode" role="group" aria-label="Show keys by">
+              <button class="segment" type="button" data-option="misses" aria-pressed="true">Misses</button>
+              <button class="segment" type="button" data-option="speed" aria-pressed="false">Speed</button>
+            </div>
           </div>
           <div class="card keys-card" id="keys-card">
             <div class="keymap-block">
-              <h3 class="card-title">Miss rate by key</h3>
+              <h3 class="card-title" id="keymap-title">Miss rate by key</h3>
               <div class="keymap" id="keymap"></div>
               <ul class="heat-legend" id="heat-legend" aria-label="Miss rate scale"></ul>
             </div>
             <div class="weak-block">
-              <h3 class="card-title">Keys to work on</h3>
+              <h3 class="card-title" id="weak-title">Keys to work on</h3>
               <ol class="weak-list" id="weak-list"></ol>
             </div>
           </div>
@@ -469,6 +503,7 @@
   <script src="js/code.js"></script>
   <script src="js/courses.js"></script>
   <script src="js/settings.js"></script>
+  <script src="js/timing.js"></script>
   <script src="js/theme.js"></script>
   <script src="js/course-map.js"></script>
   <script src="js/history.js"></script>
@@ -478,6 +513,7 @@
   <script src="js/controls.js"></script>
   <script src="js/rounds.js"></script>
   <script src="js/results.js"></script>
+  <script src="js/today.js"></script>
   <script src="js/typing.js"></script>
   <script src="themes/daniel.js"></script>
   <script src="js/menus.js"></script>

@@ -1,5 +1,8 @@
 /* Compact sizing so the whole keyboard fits a full-screen MacBook browser */
 .topbar-inner { gap: 12px 20px; }
+/* The brand's content is narrower than its 180px basis; a smaller basis keeps the bar on one row in layout C,
+   which has the most buttons. Once the row fits, the brand grows to fill it as before. */
+.brand { flex-basis: 150px; }
 .topbar .segmented { gap: 3px; padding: 3px; border-radius: 11px; }
 .topbar .button, .topbar .segment { min-height: 36px; font-size: 13.5px; }
 .topbar .segment { border-radius: 9px; }
@@ -82,3 +85,8 @@ main.shell { padding-block: 20px 32px; }
 .source-switch .segment { min-height: 52px; }
 .now-card .heading-actions { flex-wrap: wrap; }
 .now-card #open-course-map { flex-basis: 100%; }
+/* Race your best: how far ahead of, or behind, the marker you are */
+.stat-ghost { margin-left: auto; padding: 3px 10px; border-radius: 8px; background: var(--surface-3); transition: background .15s; }
+.stat-ghost:not([hidden]) ~ .stat-budget { margin-left: 0; }
+.stat-ghost.ahead { background: var(--success-soft); }
+.stat-ghost.ahead :is(dt, dd) { color: var(--success); }

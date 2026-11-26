@@ -115,3 +115,14 @@
 .weak-figure span { margin-left: 8px; font: 500 12px var(--sans); color: var(--muted); }
 .weak-empty { color: var(--muted); font-size: 14px; }
 @media (max-width: 1060px) { .keys-card { grid-template-columns: minmax(0, 1fr); } }
+/* Keys by speed: the same scale in the accent hue, so it reads apart from misses */
+.keys-card.speed {
+  --heat-0: color-mix(in srgb, var(--accent) 7%, var(--surface));
+  --heat-1: color-mix(in srgb, var(--accent) 20%, var(--surface));
+  --heat-2: color-mix(in srgb, var(--accent) 38%, var(--surface));
+  --heat-3: color-mix(in srgb, var(--accent) 62%, var(--surface));
+  --heat-4: color-mix(in srgb, var(--accent) 88%, var(--surface));
+}
+#keys-meta { flex: 1 1 auto; }
+.keys-mode { gap: 3px; padding: 3px; border-radius: 11px; }
+.keys-mode .segment { flex: none; min-height: 32px; padding: 0 12px; border-radius: 9px; font-size: 13px; }

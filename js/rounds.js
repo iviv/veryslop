@@ -6,6 +6,8 @@ function startRound(moveFocus = true) {
   stopClock();
   if (libraryOpen) setLibraryOpen(false);
   if (historyOpen) setHistoryOpen(false);
+  // A warm-up lasts while its steps are what's being typed; going anywhere else ends it.
+  if (warmup && !warmupContinues()) endWarmup();
   const area = currentArea();
   get("focus-name").textContent = area.name;
   const drill = settings.view === "course" ? currentDrill() : null;
@@ -26,9 +28,12 @@ function startRound(moveFocus = true) {
     failed: false, passed: false, newlyDone: false, correct: 0, mistakes: 0, typoPositions: new Set(), tripReason: null,
     pending: [], deleted: 0, pileSizes: [],
     misses: new Map(), lastWrong: null,
+    // Timing: the gaps between correct keys (timing.js), and the race-your-best marker.
+    gaps: [], lastCorrectAt: null, lastTyped: null, ghost: null, ghostCell: null, typeable: null,
     // Code is typed line by line; `auto` holds the indentation positions the cursor skips.
     code: !!code, auto: code ? indentPositions(code.text) : new Set()
   };
+  round.ghost = ghostSpeed();
   resultBanner.hidden = true;
   typingArea.hidden = false;
 
@@ -115,6 +120,9 @@ function startRound(moveFocus = true) {
     description = drill.samples
       ? `A short program this lesson didn't use. Pass with ${passMark}% accuracy to finish the lesson. Press Return at the end of each line; indentation fills in for you.`
       : `A fresh mix of this lesson's drills, new every attempt. Pass with ${passMark}% accuracy to finish the lesson.`;
+    description += isFluent(drill)
+      ? ` You've passed it at Fluent speed, ${area.fluentWpm} wpm or more.`
+      : ` A pass at ${area.fluentWpm} wpm or more also counts as Fluent.`;
   } else if (drill) {
     location = drill.lesson
       ? `Lesson ${drill.lesson.number} · ${drill.lesson.name} · Drill ${drill.step} of ${drill.lesson.list.length - 1}`
@@ -134,10 +142,19 @@ function startRound(moveFocus = true) {
     location = "Fun · Sprint";
     title = sprint.type.title;
     description = `${sprint.type.description} The clock starts on your first key.${best ? ` Your best is ${formatSeconds(best)} seconds.` : ""}`;
+  } else if (practice.review) {
+    const { lesson } = practice.review;
+    location = `${area.name} · Practice`;
+    title = practice.review.current ? `Lesson ${lesson.number} mix: ${lesson.name}` : `Review: ${lesson.name}`;
+    description = practice.review.current
+      ? `A mix of lesson ${lesson.number}, the one you're working on. Once you pass a lesson's checkpoint, warm-ups review that lesson instead.`
+      : `A fresh mix of lesson ${lesson.number}, whose checkpoint you passed earlier, to keep it sharp.`;
+    if (practice.code) description += " Press Return at the end of each line; indentation fills in for you.";
   } else {
     const type = area.practiceTypes.find((option) => option.id === practice.type);
     location = `${area.name} · Practice`;
-    title = practice.mode === "weak" ? `${practice.missed ? "Missed keys" : "Weak keys"}: ${practice.keys.map(describeKey).join("  ")}` : type.name;
+    const targets = [...practice.keys.map(describeKey), ...(practice.pairs ?? []).map((pair) => `${pair[0]}→${pair[1]}`)];
+    title = practice.mode === "weak" ? `${practice.missed ? "Missed keys" : "Weak keys"}: ${targets.join("  ")}` : type.name;
     description = practice.from
       ? `Built from the keys you missed in ${practice.from.title}. When you're done, go back to the course from the result.`
       : practice.type === "weak" && practice.mode !== "weak"
@@ -145,6 +162,8 @@ function startRound(moveFocus = true) {
       : type.description;
     if (practice.code) description += " Press Return at the end of each line; indentation fills in for you.";
   }
+  const step = warmupStepOf(practice ?? passage);
+  if (step) location = `Warm-up · Step ${step.number} of ${warmup.steps.length} · ${location}`;
   get("lesson-location").textContent = location;
   get("lesson-title").textContent = title;
   get("mode-description").textContent = description;
@@ -155,7 +174,8 @@ function startRound(moveFocus = true) {
   nextDrill.disabled = !!drill && !neighbourDrill(drill, 1);
   nextDrill.classList.remove("primary");
   nextDrill.classList.toggle("is-passage", !drill);
-  nextDrillLabel.textContent = drill ? "Next drill" : passage ? "New passage" : sprint ? "Next sprint" : "New round";
+  nextDrillLabel.textContent = step ? (step.number < warmup.steps.length ? "Skip step" : "Finish warm-up")
+    : drill ? "Next drill" : passage ? "New passage" : sprint ? "Next sprint" : "New round";
   newRound.classList.remove("primary");
   newRoundLabel.textContent = `Reset ${attempt}`;
   newRound.title = `Reset this ${attempt} (esc)`;
@@ -177,6 +197,7 @@ function startRound(moveFocus = true) {
   // nothing to reset, and the keyboard shows no next key.
   const welcoming = !!drill && !settings.welcomed;
   welcomePanel.hidden = !welcoming;
+  renderGhost();
   newRound.hidden = welcoming;
   document.querySelector(".shortcuts").classList.toggle("welcoming", welcoming);
   renderKeyboard();
@@ -248,6 +269,7 @@ function renderStats() {
   statFields.speed.textContent = keysPerMinute === null ? "—" : Math.round(keysPerMinute);
   if (round.passage) wpmValue.textContent = keysPerMinute === null ? "—" : Math.round(keysPerMinute / 5);
   renderBudget();
+  renderGhost();
 }
 
 function renderMisses() {
@@ -288,6 +310,7 @@ function renderKeyboard() {
   hintButton.disabled = !settings.keyboard;
   fingerColorButton.setAttribute("aria-checked", String(settings.fingerColors));
   soundButton.setAttribute("aria-checked", String(settings.sound));
+  get("toggle-ghost").setAttribute("aria-checked", String(settings.ghost));
   fingerColorButton.disabled = !settings.keyboard;
   keyboard.classList.toggle("finger-colors", settings.fingerColors);
   if (!settings.keyboard) return;

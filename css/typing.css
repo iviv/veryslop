@@ -143,3 +143,8 @@ progress::-moz-progress-bar { background: var(--accent); border-radius: 6px; }
 .welcome-path li { counter-increment: step; padding: 3px 10px; border-radius: 999px; background: var(--accent-soft); color: var(--accent-ink); font-size: 12.5px; font-weight: 600; }
 .welcome-path li::before { content: counter(step) ". "; opacity: .7; }
 @media (max-width: 720px) { .welcome-options { grid-template-columns: minmax(0, 1fr); } }
+
+/* Race your best: a faint marker that moves through the prompt at your best pace */
+.character.ghost { background: color-mix(in srgb, var(--muted-2) 16%, transparent); box-shadow: inset 2px 0 0 var(--muted-2); }
+.character.current.ghost { box-shadow: inset 0 -3px 0 var(--accent), inset 2px 0 0 var(--muted-2); }
+.character.current.wrong.ghost { box-shadow: inset 0 -3px 0 var(--danger-strong), inset 2px 0 0 var(--muted-2); }

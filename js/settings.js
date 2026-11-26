@@ -38,8 +38,11 @@ const formatSeconds = (milliseconds, digits = 2) => (milliseconds / 1000).toFixe
 const settings = {
   version: 5, focus: "home", view: "course", drills: {}, drillLength: 180, done: [], welcomed: false, sound: false,
   resetModes: { course: "pass", practice: "streak", text: "off", fun: "off" }, typoLimit: 5, sprint: "alphabet", sprintBest: {}, sprintLast: {},
-  practice: {}, textSource: {}, passageLength: "medium", hints: true, fingerColors: false, correction: false, keyboard: true, theme: null, festive: null, layout: "sidebar", keyStats: {}, best: {}, history: []
+  practice: {}, textSource: {}, passageLength: "medium", hints: true, fingerColors: false, correction: false, keyboard: true, theme: null, festive: null, layout: "sidebar", keyStats: {}, best: {}, history: [],
+  keyTimes: {}, pairTimes: {}, ghost: true, fluent: [], dailyGoal: 10, reviewed: {}
 };
+// Daily goal choices, in minutes of typing; 0 turns the goal off.
+const dailyGoals = [0, 5, 10, 15, 20];
 const isPlainObject = (value) => value !== null && typeof value === "object" && !Array.isArray(value);
 
 // ---- Profiles --------------------------------------------------------------------
@@ -148,11 +151,33 @@ if (isPlainObject(saved?.sprintLast)) {
 }
 if (layouts.includes(saved?.layout)) settings.layout = saved.layout;
 // Personal bests: the best wpm and accuracy reached per drill, per practice type, and per focus for text.
+// `pace` is the best wpm of a run at the pass mark or better: the pace the race-your-best marker keeps.
 if (isPlainObject(saved?.best)) {
   for (const [key, value] of Object.entries(saved.best)) {
     if (isPlainObject(value) && Number.isInteger(value.wpm) && Number.isInteger(value.accuracy)) {
       settings.best[key] = { wpm: value.wpm, accuracy: value.accuracy };
+      if (Number.isInteger(value.pace) && value.pace > 0) settings.best[key].pace = value.pace;
     }
+  }
+}
+// Typing times: for each character, and each pair of characters typed one after the other, the total
+// milliseconds and the number of timed presses. See timing.js.
+for (const [field, length] of [["keyTimes", 1], ["pairTimes", 2]]) {
+  if (!isPlainObject(saved?.[field])) continue;
+  for (const [key, value] of Object.entries(saved[field])) {
+    if (key.length === length && Array.isArray(value) && value.length === 2 && value.every((count) => Number.isInteger(count) && count >= 0)) {
+      settings[field][key] = value;
+    }
+  }
+}
+if (typeof saved?.ghost === "boolean") settings.ghost = saved.ghost;
+if (dailyGoals.includes(saved?.dailyGoal)) settings.dailyGoal = saved.dailyGoal;
+// Checkpoints passed at their focus's Fluent speed.
+if (Array.isArray(saved?.fluent)) settings.fluent = [...new Set(saved.fluent.filter((id) => drillById.get(id)?.checkpoint))];
+// When each finished lesson was last reviewed in a warm-up, by checkpoint id.
+if (isPlainObject(saved?.reviewed)) {
+  for (const [id, at] of Object.entries(saved.reviewed)) {
+    if (drillById.get(id)?.checkpoint && Number.isFinite(at)) settings.reviewed[id] = at;
   }
 }
 // Results history, newest first.
@@ -178,6 +203,9 @@ function saveSettings() {
   const latest = readSettings();
   if (Array.isArray(latest?.done)) {
     settings.done = [...new Set([...settings.done, ...keptDone(latest)])];
+  }
+  if (Array.isArray(latest?.fluent)) {
+    settings.fluent = [...new Set([...settings.fluent, ...latest.fluent.filter((id) => drillById.get(id)?.checkpoint)])];
   }
   try {
     localStorage.setItem(settingsKey, JSON.stringify(settings));

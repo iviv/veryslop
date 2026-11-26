@@ -51,3 +51,4 @@
 .drill-tile.checkpoint .drill-tile-prompt { font: 600 14px var(--sans); }
 .drill-tile-note { flex: none; font-size: 12px; color: var(--muted); }
 .drill-tile.checkpoint.done { border-style: solid; }
+.drill-tile.checkpoint.fluent .drill-tile-note { color: var(--success); font-weight: 600; }

@@ -40,3 +40,4 @@
 .tip-card { padding: 18px 20px; }
 .tip-label { font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--accent-text); }
 .tip-card p { min-height: 3em; margin-top: 6px; font-size: 14.5px; color: var(--ink-2); }
+.settings-switch { min-height: 32px; margin-left: -8px; }

@@ -20,6 +20,7 @@ function setFocusMenuOpen(open) {
   focusList.hidden = !open;
   focusButton.setAttribute("aria-expanded", String(open));
   if (!open) return;
+  if (todayMenuOpen) setTodayMenuOpen(false);
   renderFocusMenu();
   (focusList.querySelector('[aria-selected="true"]') ?? focusList.firstElementChild).focus();
 }
@@ -139,6 +140,7 @@ function setProfileMenuOpen(open) {
   }
   setFocusMenuOpen(false);
   setSettingsOpen(false);
+  if (todayMenuOpen) setTodayMenuOpen(false);
   renderProfileMenu();
   profilePanel.querySelector('.profile-option[aria-current="true"]')?.focus();
 }

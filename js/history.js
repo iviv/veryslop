@@ -29,7 +29,7 @@ function closeHistory() {
 }
 
 const historyOutcomes = {
-  passed: ["Passed", "good"], short: ["Not passed", "bad"], stopped: ["Stopped early", "bad"], done: ["Done", "good"]
+  passed: ["Passed", "good"], fluent: ["Fluent", "good"], short: ["Not passed", "bad"], stopped: ["Stopped early", "bad"], done: ["Done", "good"]
 };
 
 function historyDay(time) {
@@ -52,7 +52,7 @@ const statRanges = [
 ];
 const statKinds = [{ id: "all", name: "All" }, ...historyKinds.map((id) => ({ id, name: kindLabels[id] }))];
 // The overview's filters; they last until the page is reloaded. "chosen" is set once the user picks one.
-const historyFilter = { range: "30", kind: "all", chosen: false };
+const historyFilter = { range: "30", kind: "all", chosen: false, keys: "misses" };
 const dayMs = 86400000;
 // Calendar arithmetic in local time, so days stay whole across daylight-saving changes.
 const addDays = (time, days) => {
@@ -536,31 +536,89 @@ function keyTotals() {
   return totals;
 }
 
+// Speed per physical key: the average gap before it, against your average over every key.
+function keyTimeTotals() {
+  const totals = new Map();
+  for (const [character, [sum, count]] of Object.entries(settings.keyTimes)) {
+    const key = shiftedToBase[character] ?? character.toLowerCase();
+    const total = totals.get(key) ?? { sum: 0, count: 0 };
+    total.sum += sum;
+    total.count += count;
+    totals.set(key, total);
+  }
+  for (const total of totals.values()) total.mean = total.sum / total.count;
+  return totals;
+}
+
+const speedSteps = [
+  { below: .9, label: "Faster than average" }, { below: 1.1, label: "About average" }, { below: 1.3, label: "Up to 30% slower" },
+  { below: 1.6, label: "30–60% slower" }, { below: Infinity, label: "60% or more slower" }
+];
+const pairLabel = (pair) => `${pair[0]}→${pair[1]}`;
+const comparedWithAverage = (ratio) => {
+  const percent = Math.round(Math.abs(ratio - 1) * 100);
+  return percent < 5 ? "about your average" : `${percent}% ${ratio > 1 ? "slower" : "faster"} than your average`;
+};
+
+function barRow(label, fraction, value, sub) {
+  const item = element("li", "weak-row");
+  const track = element("div", "weak-track");
+  const fill = element("div", "weak-fill");
+  fill.style.width = `${fraction * 100}%`;
+  track.append(fill);
+  const figure = element("p", "weak-figure", value);
+  figure.append(element("span", "", sub));
+  item.append(element("kbd", "", label), track, figure);
+  return item;
+}
+
 function renderKeys() {
+  setPressed([...get("keys-mode").children], (button) => button.dataset.option === historyFilter.keys);
+  const speed = historyFilter.keys === "speed";
   const totals = keyTotals();
   const attempts = [...totals.values()].reduce((sum, total) => sum + total.attempts, 0);
   const misses = [...totals.values()].reduce((sum, total) => sum + total.misses, 0);
-  get("keys-meta").textContent = attempts
-    ? `${plural(attempts, "keystroke")} · ${formatRate(misses / attempts)} missed`
-    : "No keystrokes recorded yet.";
+  const times = keyTimeTotals();
+  const pace = typingPace();
+  get("keys-meta").textContent = !attempts ? "No keystrokes recorded yet."
+    : !speed ? `${plural(attempts, "keystroke")} · ${formatRate(misses / attempts)} missed`
+    : pace ? `About ${Math.round(pace)} ms between keys on average, a pace of ${Math.round(12000 / pace)} wpm`
+    : "Timing shows up here after about 100 keystrokes.";
   get("keys-card").hidden = attempts === 0;
+  get("keys-mode").hidden = attempts === 0;
   if (attempts === 0) return;
+  get("keymap-title").textContent = speed ? "Time per key, in milliseconds" : "Miss rate by key";
+  get("weak-title").textContent = speed ? "Slowest pairs" : "Keys to work on";
+  get("heat-legend").setAttribute("aria-label", speed ? "Speed scale" : "Miss rate scale");
 
   const keymap = get("keymap");
+  get("keys-card").classList.toggle("speed", speed);
   keymap.replaceChildren();
   const tip = chartTip(keymap);
   const cell = (key, className = "") => {
-    const total = totals.get(key);
     const node = element("span", `keymap-key ${className}`.trim());
     const name = describeKey(key) === key ? keyLabel(key) : describeKey(key);
     let detail;
-    if (!total || total.attempts < minKeyAttempts) {
-      node.append(element("span", "", keyLabel(key)), element("small", "", total ? "few" : "–"));
-      detail = total ? `Typed ${plural(total.attempts, "time")}, not enough to tell yet` : "Not typed yet";
+    if (speed) {
+      const total = times.get(key);
+      if (!total || total.count < minKeyAttempts) {
+        node.append(element("span", "", keyLabel(key)), element("small", "", total ? "few" : "–"));
+        detail = total ? `Timed ${plural(total.count, "time")}, not enough to tell yet` : "Not timed yet";
+      } else {
+        if (pace) node.dataset.heat = String(speedSteps.findIndex((step) => total.mean / pace < step.below));
+        node.append(element("span", "", keyLabel(key)), element("small", "", String(Math.round(total.mean))));
+        detail = `${Math.round(total.mean)} ms on average${pace ? `, ${comparedWithAverage(total.mean / pace)}` : ""}`;
+      }
     } else {
-      node.dataset.heat = String(heatSteps.findIndex((step) => total.rate < step.below));
-      node.append(element("span", "", keyLabel(key)), element("small", "", formatRate(total.rate)));
-      detail = `${formatRate(total.rate)} missed: ${total.misses.toLocaleString()} of ${total.attempts.toLocaleString()}`;
+      const total = totals.get(key);
+      if (!total || total.attempts < minKeyAttempts) {
+        node.append(element("span", "", keyLabel(key)), element("small", "", total ? "few" : "–"));
+        detail = total ? `Typed ${plural(total.attempts, "time")}, not enough to tell yet` : "Not typed yet";
+      } else {
+        node.dataset.heat = String(heatSteps.findIndex((step) => total.rate < step.below));
+        node.append(element("span", "", keyLabel(key)), element("small", "", formatRate(total.rate)));
+        detail = `${formatRate(total.rate)} missed: ${total.misses.toLocaleString()} of ${total.attempts.toLocaleString()}`;
+      }
     }
     node.tabIndex = 0;
     node.setAttribute("role", "img");
@@ -583,7 +641,8 @@ function renderKeys() {
     keymap.insertBefore(row, tip);
   }
 
-  get("heat-legend").replaceChildren(...[...heatSteps.map((step, index) => [step.label, `var(--heat-${index})`]), [`Under ${minKeyAttempts} tries`, ""]]
+  const steps = speed ? speedSteps : heatSteps;
+  get("heat-legend").replaceChildren(...[...steps.map((step, index) => [step.label, `var(--heat-${index})`]), [`Under ${minKeyAttempts} tries`, ""]]
     .map(([label, color]) => {
       const item = element("li");
       const swatch = element("span", "heat-swatch");
@@ -592,27 +651,35 @@ function renderKeys() {
       return item;
     }));
 
+  const list = get("weak-list");
+  if (speed) {
+    // Pairs slower than your average key, slowest first.
+    const pairs = Object.entries(settings.pairTimes)
+      .map(([pair, [sum, count]]) => ({ pair, mean: sum / count, count }))
+      .filter(({ mean, count }) => count >= minTimedPairs && (!pace || mean > pace))
+      .sort((a, b) => b.mean - a.mean)
+      .slice(0, 8);
+    if (pairs.length === 0) {
+      list.replaceChildren(element("li", "weak-empty", pace
+        ? `No slow pairs: every pair of keys timed ${minTimedPairs} or more times is at or under your average.`
+        : `No pair of keys timed ${minTimedPairs} or more times yet.`));
+      return;
+    }
+    list.replaceChildren(...pairs.map(({ pair, mean, count }) =>
+      barRow(pairLabel(pair), mean / pairs[0].mean, `${Math.round(mean)} ms`, pace ? `${(mean / pace).toFixed(1)}× average` : plural(count, "time"))));
+    return;
+  }
   const weak = [...totals]
     .filter(([, total]) => total.attempts >= minKeyAttempts && total.misses > 0)
     .sort(([, a], [, b]) => b.rate - a.rate || b.attempts - a.attempts)
     .slice(0, 8);
-  const list = get("weak-list");
   if (weak.length === 0) {
     list.replaceChildren(element("li", "weak-empty", `No misses yet on any key typed ${minKeyAttempts} or more times.`));
     return;
   }
   const highest = weak[0][1].rate;
-  list.replaceChildren(...weak.map(([key, total]) => {
-    const item = element("li", "weak-row");
-    const track = element("div", "weak-track");
-    const fill = element("div", "weak-fill");
-    fill.style.width = `${total.rate / highest * 100}%`;
-    track.append(fill);
-    const figure = element("p", "weak-figure", formatRate(total.rate));
-    figure.append(element("span", "", `${total.misses.toLocaleString()} of ${total.attempts.toLocaleString()}`));
-    item.append(element("kbd", "", keyLabel(key)), track, figure);
-    return item;
-  }));
+  list.replaceChildren(...weak.map(([key, total]) =>
+    barRow(keyLabel(key), total.rate / highest, formatRate(total.rate), `${total.misses.toLocaleString()} of ${total.attempts.toLocaleString()}`)));
 }
 
 // ---- The history page --------------------------------------------------------------
@@ -696,7 +763,7 @@ function renderResults() {
   get("history-days").replaceChildren(...[...groups].map(([label, list]) => {
     const card = element("section", "card history-day");
     const table = element("table", "history-table");
-    const thead = tableHead([["Time"], ["Exercise"], ["Result"], ["WPM", true], ["Accuracy", true], ["Duration", true], ["Typos", true]]);
+    const thead = tableHead([["Time"], ["Exercise"], ["Result"], ["WPM", true], ["Accuracy", true], ["Rhythm", true], ["Duration", true], ["Typos", true]]);
     const tbody = element("tbody");
     for (const entry of list) {
       const row = element("tr");
@@ -712,6 +779,7 @@ function renderResults() {
         element("td", `history-outcome ${tone}`, outcomeText),
         element("td", "num", entry.wpm == null ? "—" : String(entry.wpm)),
         element("td", "num", entry.accuracy == null ? "—" : `${entry.accuracy}%`),
+        element("td", "num", entry.rhythm == null ? "—" : `${entry.rhythm}%`),
         element("td", "num", duration),
         element("td", "num", String(entry.typos ?? 0))
       );

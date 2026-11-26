@@ -47,6 +47,7 @@ function recordResult(entry) {
   settings.history.unshift({ at: Date.now(), ...entry });
   if (settings.history.length > historyLimit) settings.history.length = historyLimit;
   saveSettings();
+  renderToday();
 }
 
 // The banner itself takes focus (not its buttons), so a stray space can't press "Try again".
@@ -110,6 +111,8 @@ function showSprintResult() {
     else if (best && milliseconds >= last) notes.push(`Best ${formatSeconds(best)} s`);
   }
   if (round.mistakes) notes.push(`${round.mistakes} ${round.mistakes === 1 ? "typo" : "typos"}`);
+  const goal = round.cheated ? "" : goalNote(milliseconds);
+  if (goal) notes.push(goal);
   if (round.cheated) notes.splice(0, notes.length, "Cheat win. Your real times are untouched.");
   const nextType = sprints[(sprints.indexOf(type) + 1) % sprints.length];
   const retry = { label: "Go again", verb: "go again", run: () => startRound() };
@@ -172,6 +175,16 @@ function showResults() {
     const target = neighbourDrill(drill, 1);
     if (target) next = { label: "Next drill", verb: "go to the next drill", run: () => chooseDrill(target.id), drill: target };
   }
+  // In a warm-up, each step leads to the next, and the last one back to where you were.
+  const step = warmupStepOf(round.practice ?? round.passage);
+  if (step) {
+    warmup.ms += Math.round(duration);
+    if (!round.failed && step.review && !step.review.current) settings.reviewed[step.review.lesson.list.at(-1).id] = Date.now();
+  }
+  const nextStep = step ? warmup.steps[step.number] ?? null : null;
+  const onward = !step ? null : nextStep
+    ? { label: `Next: ${nextStep.name}`, verb: "go to the next warm-up step", run: advanceWarmup }
+    : { label: warmupReturnLabel(), verb: warmupReturnLabel().toLowerCase(), run: finishWarmup };
   // A practice round started from a course result leads back to the course.
   const from = round.practice?.from;
   const back = from ? { label: "Back to the course", verb: "go back to the course", run: () => startCourse(from.area) } : null;
@@ -184,11 +197,14 @@ function showResults() {
   // Personal bests are kept per course drill, per practice type, and per focus for text.
   let bestNote = "";
   if (!round.failed && wpm !== null && !round.cheated) {
-    const key = drill ? drill.id : round.passage ? `text/${area.id}` : `practice/${area.id}/${round.practice.type}`;
+    const key = bestKeyFor();
     const previous = settings.best[key];
     if (previous && wpm > previous.wpm) bestNote = `New best: ${wpm - previous.wpm} wpm faster than before.`;
     else if (previous && accuracy > previous.accuracy) bestNote = `Your most accurate run yet, up from ${previous.accuracy}%.`;
     settings.best[key] = { wpm: Math.max(wpm, previous?.wpm ?? 0), accuracy: Math.max(accuracy, previous?.accuracy ?? 0) };
+    // The race-your-best marker keeps the pace of your best run at the pass mark or better.
+    const pace = accuracy >= passMark ? Math.max(wpm, previous?.pace ?? 0) : previous?.pace;
+    if (pace) settings.best[key].pace = pace;
     saveSettings();
   }
 
@@ -209,16 +225,18 @@ function showResults() {
     }[round.tripReason];
     line = `${reason}, ${Math.round(typed / total * 100)}% of the way in.`;
     primary = retry;
-    secondary = drill ? map : round.passage ? newText : round.sprint ? null : back ?? another;
+    secondary = step ? { ...onward, label: nextStep ? "Skip to the next step" : "Finish warm-up" }
+      : drill ? map : round.passage ? newText : round.sprint ? null : back ?? another;
   } else if (drill?.checkpoint) {
     success = round.passed;
     if (round.passed) {
-      title = "Checkpoint passed";
+      title = round.fluent ? "Checkpoint passed · Fluent" : "Checkpoint passed";
       if (round.newlyDone) {
         line = progressOf(area.path).complete ? `That completes the ${area.name} course.` : `That completes lesson ${drill.lesson.number}: ${drill.lesson.name}.`;
       } else {
         line = bestNote || "Passed again. Repeats like this keep it sharp.";
       }
+      if (round.newlyFluent) line += ` Fluent too: ${wpm} wpm clears the ${area.fluentWpm} wpm mark.`;
       primary = next ?? map;
       secondary = retry;
     } else {
@@ -259,36 +277,61 @@ function showResults() {
     line = bestNote || (count > 1 ? `That's ${count} ${kind}s this session. Keep the rhythm going.` : "Keep the rhythm going with another one.");
     primary = back ?? (round.passage ? newText : another);
     secondary = retry;
+    if (step) {
+      title = nextStep ? `Warm-up step ${step.number} done` : "Warm-up done";
+      line = nextStep ? bestNote || `${plural(warmup.steps.length - step.number, "step")} to go.` : `${formatDuration(warmup.ms)} of typing across ${plural(warmup.steps.length, "step")}.`;
+      primary = onward;
+    }
   }
 
+  const goal = round.cheated ? "" : goalNote(duration);
+  if (goal) line += ` ${goal}`;
   if (round.cheated) line = "Cheat win. Nothing was saved to your progress.";
   get("result-title").textContent = title;
   get("result-line").textContent = line;
 
   // Accuracy shows green at a pass and red below it on checkpoints; lesson drills only get the green.
   const accuracyTone = !drill ? "" : accuracy >= passMark ? "good" : drill.checkpoint ? "short" : "";
+  // On a checkpoint, the speed shows green at Fluent pace.
+  const wpmTone = drill?.checkpoint && round.passed && wpm >= area.fluentWpm ? "good" : "";
+  const rhythm = rhythmOf(round.gaps);
   const figures = [[`${accuracy}%`, "accuracy", accuracyTone]];
-  if (wpm !== null) figures.push([String(wpm), "wpm", ""]);
+  if (wpm !== null) figures.push([String(wpm), "wpm", wpmTone]);
+  if (rhythm !== null) {
+    figures.push([`${rhythm}%`, "rhythm", "", `Rhythm: ${rhythm}% of your keystrokes came at an even pace, close to your typical gap between keys.`]);
+  }
   figures.push([formatTime(duration), "time", ""]);
   figures.push([String(round.mistakes), round.mistakes === 1 ? "typo" : "typos", ""]);
   if (settings.correction) figures.push([String(round.deleted), "deleted", ""]);
-  get("result-figures").replaceChildren(...figures.map(([value, label, tone]) => {
+  get("result-figures").replaceChildren(...figures.map(([value, label, tone, title]) => {
     const item = element("div", tone);
+    if (title) item.title = title;
     item.append(element("dt", "", label), element("dd", "", value));
     return item;
   }));
 
-  get("result-tip").replaceChildren(element("strong", "", "Tip: "), round.mistakes > 0 ? resultAdvice(accuracy)[0] : cleanRunTip());
+  // Typos come first; a clean run gets a word on rhythm or the slowest pair, if either stood out.
+  const slowPair = slowestPairOf(round.gaps);
+  const tip = round.mistakes > 0 ? resultAdvice(accuracy)[0]
+    : rhythm !== null && rhythm < unevenRhythm ? `Your rhythm was uneven: ${rhythm}% of keys came at a steady pace. Slow down to a pace you can keep for every key, the hard ones included.`
+    : slowPair ? `${describePair(slowPair.pair)} took about ${slowPair.ratio.toFixed(1)} times your usual gap between keys. Weak keys practice drills slow pairs like this one.`
+    : cleanRunTip();
+  get("result-tip").replaceChildren(element("strong", "", "Tip: "), tip);
 
   const progressLine = get("result-progress");
   progressLine.replaceChildren();
-  if (drill) {
+  if (step) {
+    progressLine.append(`Warm-up · Step ${step.number} of ${warmup.steps.length}`);
+    if (nextStep) progressLine.append(" · Up next: ", element("strong", "", nextStep.name));
+  } else if (drill) {
     progressLine.append(`${drill.lesson ? `Lesson ${drill.lesson.number}` : drill.unit.name} · ${groupDone.done} of ${groupDone.total} done`);
+    if (drill.checkpoint) progressLine.append(isFluent(drill) ? " · Fluent" : ` · Fluent at ${area.fluentWpm} wpm`);
     if (primary === next && next.drill) progressLine.append(" · Up next: ", element("strong", "", next.drill.checkpoint ? `Lesson ${next.drill.lesson.number} checkpoint` : next.drill.title));
     else if (primary === next && next.area) progressLine.append(" · Up next: ", element("strong", "", `${next.area.name} course`));
   } else {
     const kind = round.passage ? round.passage.title : round.sprint ? round.sprint.type.title
-      : round.practice.missed ? "Missed keys" : area.practiceTypes.find((option) => option.id === round.practice.type).name;
+      : round.practice.missed ? "Missed keys" : round.practice.review ? "Review"
+      : area.practiceTypes.find((option) => option.id === round.practice.type).name;
     progressLine.append(round.sprint ? `Fun · ${kind}` : `${area.name} · ${kind}`);
   }
 
@@ -301,14 +344,15 @@ function showResults() {
   setStatus(`${title}. Press return to ${primary.verb}, or esc to close.`, success ? "complete" : "error");
   get("enter-hint").textContent = primary.verb;
   if (primary === next && next.drill === neighbourDrill(drill, 1)) nextDrill.classList.add("primary");
-  const name = drill ? drill.title : round.passage ? round.passage.title : round.sprint ? round.sprint.type.title : area.practiceTypes.find((option) => option.id === round.practice.type).name;
-  const step = !drill ? "" : drill.checkpoint ? `Lesson ${drill.lesson.number} checkpoint`
+  const name = drill ? drill.title : round.passage ? round.passage.title : round.sprint ? round.sprint.type.title
+    : round.practice.review ? `Review: ${round.practice.review.lesson.name}` : area.practiceTypes.find((option) => option.id === round.practice.type).name;
+  const place = !drill ? "" : drill.checkpoint ? `Lesson ${drill.lesson.number} checkpoint`
     : drill.lesson ? `Lesson ${drill.lesson.number}, drill ${drill.step}` : `Library · ${drill.unit.name}, drill ${drill.index}`;
-  const where = drill ? `${area.name} · ${step}` : round.passage ? `${area.name} · Text` : round.sprint ? "Fun · Sprint" : `${area.name} · Practice`;
+  const where = drill ? `${area.name} · ${place}` : step ? `${area.name} · Warm-up` : round.passage ? `${area.name} · Text` : round.sprint ? "Fun · Sprint" : `${area.name} · Practice`;
   if (!round.cheated) recordResult({
     kind: attemptName(), name, where,
-    outcome: round.failed ? "stopped" : drill?.checkpoint ? (round.passed ? "passed" : "short") : "done",
-    title, line, tip: get("result-tip").textContent.replace(/^Tip:\s*/, ""), wpm, accuracy, ms: Math.round(duration), typos: round.mistakes, keys: typed, total
+    outcome: round.failed ? "stopped" : drill?.checkpoint ? (round.fluent ? "fluent" : round.passed ? "passed" : "short") : "done",
+    title, line, tip: get("result-tip").textContent.replace(/^Tip:\s*/, ""), wpm, accuracy, rhythm, ms: Math.round(duration), typos: round.mistakes, keys: typed, total
   });
   presentResults();
 }
@@ -329,6 +373,15 @@ function finishRound() {
   pauseClock();
   const accuracy = Math.round(round.correct / (round.correct + round.mistakes) * 100);
   round.passed = accuracy >= passMark;
+  // A checkpoint passed at its focus's Fluent speed is marked Fluent as well.
+  const wpm = round.activeMs >= 1000 ? Math.round(round.correct * 12000 / round.activeMs) : 0;
+  if (round.drill?.checkpoint && round.passed && !round.cheated && wpm >= round.drill.area.fluentWpm) {
+    round.fluent = true;
+    if (!isFluent(round.drill)) {
+      settings.fluent.push(round.drill.id);
+      round.newlyFluent = true;
+    }
+  }
   // A checkpoint counts at a pass; lesson and library drills count once finished.
   const counts = round.drill && !round.cheated && (round.passed || !round.drill.checkpoint);
   if (counts && !isDone(round.drill)) {

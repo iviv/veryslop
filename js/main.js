@@ -70,6 +70,34 @@ profileMenu.addEventListener("keydown", (event) => {
 profileMenu.addEventListener("focusout", (event) => {
   if (profileMenuOpen && event.relatedTarget && !profileMenu.contains(event.relatedTarget)) setProfileMenuOpen(false);
 });
+todayButton.addEventListener("click", () => setTodayMenuOpen(!todayMenuOpen));
+get("start-warmup").addEventListener("click", startWarmup);
+// Like the profile menu, the Today panel keeps its own keys: Escape closes it, and nothing reaches the drill.
+const todayMenu = document.querySelector(".today-menu");
+todayMenu.addEventListener("keydown", (event) => {
+  if (todayMenuOpen && event.key === "Escape") {
+    event.preventDefault();
+    setTodayMenuOpen(false);
+    todayButton.focus({ preventScroll: true });
+  }
+});
+todayMenu.addEventListener("focusout", (event) => {
+  if (todayMenuOpen && event.relatedTarget && !todayMenu.contains(event.relatedTarget)) setTodayMenuOpen(false);
+});
+get("toggle-ghost").addEventListener("click", () => {
+  settings.ghost = !settings.ghost;
+  saveSettings();
+  round.ghost = round.endedAt === null ? ghostSpeed() : null;
+  renderGhost();
+  renderKeyboard();
+  typingArea.focus({ preventScroll: true });
+});
+for (const button of get("keys-mode").children) {
+  button.addEventListener("click", () => {
+    historyFilter.keys = button.dataset.option;
+    renderKeys();
+  });
+}
 get("top-history").addEventListener("click", () => {
   if (historyOpen) closeHistory();
   else setHistoryOpen(true);
@@ -156,7 +184,8 @@ typoLimitUp.addEventListener("click", () => changeTypoLimit(1));
 newRound.addEventListener("click", () => startRound());
 previousDrill.addEventListener("click", () => chooseDrill(neighbourDrill(round.drill, -1)?.id));
 nextDrill.addEventListener("click", () => {
-  if (round.drill) chooseDrill(neighbourDrill(round.drill, 1)?.id);
+  if (warmupStepOf(round.practice ?? round.passage)) advanceWarmup();
+  else if (round.drill) chooseDrill(neighbourDrill(round.drill, 1)?.id);
   else if (round.passage) newPassage();
   else if (round.sprint) chooseSprint(sprints[(sprints.indexOf(round.sprint.type) + 1) % sprints.length].id);
   else newPractice();
@@ -178,6 +207,7 @@ get("clear-history").addEventListener("click", () => {
   settings.history = [];
   saveSettings();
   renderHistory();
+  renderToday();
   get("close-history").focus({ preventScroll: true });
 });
 for (const button of layoutButtons) {
@@ -193,6 +223,7 @@ document.addEventListener("click", (event) => {
   // The welcome's "Choose a focus" button opens the menu, so its own click mustn't close it again.
   if (focusMenuOpen && !event.target.closest(".focus-menu, #welcome-focus")) setFocusMenuOpen(false);
   if (profileMenuOpen && !event.target.closest(".profile-menu")) setProfileMenuOpen(false);
+  if (todayMenuOpen && !event.target.closest(".today-menu")) setTodayMenuOpen(false);
 });
 // The docked layout sizes the page around the keyboard panel's real height.
 new ResizeObserver(() => {
@@ -270,8 +301,8 @@ document.addEventListener("keydown", (event) => {
     return;
   }
   if (event.defaultPrevented || event.isComposing || event.metaKey || event.ctrlKey || event.altKey) return;
-  // The focus and profile menus handle their own keys while they are open.
-  if (focusMenuOpen || profileMenuOpen) return;
+  // The focus and profile menus and the Today panel handle their own keys while they are open.
+  if (focusMenuOpen || profileMenuOpen || todayMenuOpen) return;
   if (settingsOpen && event.key === "Escape") {
     event.preventDefault();
     setSettingsOpen(false);
@@ -370,8 +401,13 @@ applyTheme();
 applyFestiveTheme();
 applyLayout();
 renderProfileButton();
+renderToday();
 startRound(false);
 showPracticeTip();
 setInterval(() => {
   if (!document.hidden) showPracticeTip();
 }, 20000);
+// Keeps the daily goal right across midnight.
+setInterval(() => {
+  if (!document.hidden && !todayMenuOpen) renderToday();
+}, 60000);

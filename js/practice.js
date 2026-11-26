@@ -18,23 +18,38 @@ function weakKeysFor(area) {
     .map(({ key }) => key);
 }
 
-// Weak-key rounds favour real course material that contains the key, then fall back to simple repeats.
-function weakItem(area, keys, pool = area.pool) {
-  const key = pick(keys);
-  const matches = pool.filter((item) => item.includes(key));
-  if (matches.length > 0 && Math.random() < 0.7) return pick(matches);
-  const home = homeOf[key];
-  return home ? `${home}${key}${home}` : `${key}${key}${key}`;
+// What a Weak keys round works on: the keys you miss most, then keys and pairs of keys that slow you down.
+// `missed` (keys from one attempt) stands in for all of it when a result offers to practice those keys.
+function weakTargetsFor(area, missed = null) {
+  if (missed) return { keys: missed, slowKeys: [], pairs: [] };
+  const missedKeys = weakKeysFor(area).slice(0, 4);
+  const slowKeys = slowKeysFor(area).filter((key) => !missedKeys.includes(key)).slice(0, Math.min(2, 5 - missedKeys.length));
+  const texts = area.code ? codeSamples.map((sample) => sample.code) : area.pool;
+  const pairs = slowPairsFor(area, texts).slice(0, 2);
+  return { keys: [...missedKeys, ...slowKeys], slowKeys, pairs };
+}
+
+// Weak-key rounds favour real course material that contains the key or pair, then fall back to simple repeats.
+// Slow pairs only come from material that has them.
+function weakItem(area, targets, pool = area.pool) {
+  const target = pick([...targets.keys, ...targets.pairs]);
+  const matches = pool.filter((item) => item.includes(target));
+  if (matches.length > 0 && (target.length > 1 || Math.random() < 0.7)) return pick(matches);
+  if (target.length > 1) return pick(area.pool.filter((item) => item.includes(target)));
+  const home = homeOf[target];
+  return home ? `${home}${target}${home}` : `${target}${target}${target}`;
 }
 
 // Code practice: whole samples, never cut mid-way, until the round reaches about its length in typed keys.
 // `missed` (keys from one attempt) stands in for the long-term weak keys.
 function buildCodePractice(area, type, length, missed = null) {
-  const keys = type === "weak" ? missed ?? weakKeysFor(area) : [];
-  const mode = type === "weak" && keys.length < (missed ? 1 : 2) ? "mixed" : type;
+  const { keys, slowKeys, pairs } = type === "weak" ? weakTargetsFor(area, missed) : { keys: [], slowKeys: [], pairs: [] };
+  const mode = type === "weak" && keys.length + pairs.length < (missed ? 1 : 2) ? "mixed" : type;
   let pool = mode === "mixed" ? codeSamples : codeSamples.filter((sample) => sample.group === mode);
   if (mode === "weak") {
-    const share = (sample) => [...sample.code].filter((character) => keys.includes(character)).length / sample.typed;
+    const hits = (sample) => [...sample.code].filter((character) => keys.includes(character)).length
+      + pairs.reduce((sum, pair) => sum + 2 * (sample.code.split(pair).length - 1), 0);
+    const share = (sample) => hits(sample) / sample.typed;
     pool = [...codeSamples].sort((a, b) => share(b) - share(a)).slice(0, Math.ceil(codeSamples.length * .4));
   }
   const chosen = [];
@@ -45,7 +60,7 @@ function buildCodePractice(area, type, length, missed = null) {
     chosen.push(sample);
     size += sample.typed + 2;
   }
-  return { type, mode, keys, missed: !!missed, code: true, ...joinCode(chosen) };
+  return { type, mode, keys, slowKeys, pairs, missed: !!missed, code: true, ...joinCode(chosen) };
 }
 
 // A practice round. Weak keys come from long-term stats, or from `missed`: the keys missed in one attempt,
@@ -54,19 +69,19 @@ function buildCodePractice(area, type, length, missed = null) {
 function buildPractice(area, typeId, length, missed = null, pool = null) {
   const type = area.practiceTypes.some((option) => option.id === typeId) ? typeId : "mixed";
   if (area.code) return buildCodePractice(area, type, length, missed);
-  const keys = type === "weak" ? missed ?? weakKeysFor(area) : [];
-  const mode = type === "weak" && keys.length < (missed ? 1 : 2) ? "mixed" : type;
+  const targets = type === "weak" ? weakTargetsFor(area, missed) : { keys: [], slowKeys: [], pairs: [] };
+  const mode = type === "weak" && targets.keys.length + targets.pairs.length < (missed ? 1 : 2) ? "mixed" : type;
   const parts = [];
   let size = 0;
   while (size < length) {
     const item = mode === "weak"
-      ? (Math.random() < 0.75 ? weakItem(area, keys, pool ?? area.pool) : pool ? pick(pool) : practiceItem(area, "mixed"))
+      ? (Math.random() < 0.75 ? weakItem(area, targets, pool ?? area.pool) : pool ? pick(pool) : practiceItem(area, "mixed"))
       : practiceItem(area, mode);
     if (item === parts.at(-1)) continue;
     parts.push(item);
     size += item.length + 1;
   }
-  return { type, mode, keys, missed: !!missed, text: parts.join(" ") };
+  return { type, mode, ...targets, missed: !!missed, text: parts.join(" ") };
 }
 
 // Code text: one, two or three samples in a single language, so the passage reads like one file.

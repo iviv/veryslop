@@ -598,20 +598,24 @@ for (const area of focusAreas) {
   area.practiceTypes = [
     { id: "mixed", name: "Mixed", description: `A bit of everything from the ${area.name.toLowerCase()} library.` },
     ...practiceUnits.map((unit) => ({ id: unit.id, name: unit.short, description: unit.instruction, unit })),
-    { id: "weak", name: "Weak keys", description: "Built from the keys you miss most often in this focus." }
+    { id: "weak", name: "Weak keys", description: "Built from the keys you miss most often in this focus, and the keys and pairs that slow you down." }
   ];
   // Code practice is real code, picked by language.
   if (area.code) {
     area.practiceTypes = [
       { id: "mixed", name: "Mixed", description: "Real code in a mix of languages." },
       ...codeGroups.map((group) => ({ id: group.id, name: group.name, description: group.description ?? `Typical ${group.name} exercises.` })),
-      { id: "weak", name: "Weak keys", description: "Code that leans on the keys you miss most often in this focus." }
+      { id: "weak", name: "Weak keys", description: "Code that leans on the keys you miss most often in this focus, and the keys and pairs that slow you down." }
     ];
   }
 }
 const drillById = new Map(drills.map((drill) => [drill.id, drill]));
 const areaById = new Map(focusAreas.map((area) => [area.id, area]));
 const passMark = 95;
+// Fluent: an optional second mark for a checkpoint, a pass at this speed or faster. Symbols and numbers take
+// longer to reach than letters, so their marks are lower.
+const fluentWpm = { home: 35, top: 35, bottom: 35, capitals: 30, punctuation: 30, number: 25, code: 25 };
+for (const area of focusAreas) area.fluentWpm = fluentWpm[area.id];
 // Checkpoint and practice lengths run 2–4 minutes at one key per second.
 const lengthRange = { min: 120, max: 240 };
 // Lesson and library drills repeat their pattern to about this many keys, so each one stays short.

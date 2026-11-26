@@ -6,7 +6,9 @@ function markActivity() {
   const now = performance.now();
   round.activeMs = activeTime(now);
   round.lastKeyAt = now;
-  timer ??= setInterval(tick, 250);
+  // The clock ticks faster while the race-your-best marker is out, so it moves smoothly.
+  timer ??= setInterval(tick, round.ghost ? 100 : 250);
+  return now;
 }
 
 // Typos waiting to be deleted appear at the cursor, just before the character still to type.
@@ -33,6 +35,7 @@ function handleDelete(all) {
     round.pileSizes.push(round.pending.length);
     round.deletingRun = true;
   }
+  round.lastCorrectAt = null;
   const removed = all ? round.pending.length : 1;
   round.pending.length -= removed;
   round.deleted += removed;
@@ -50,12 +53,13 @@ function handleDelete(all) {
 }
 
 function handleAttempt(character) {
-  markActivity();
+  const now = markActivity();
   const target = round.characters[round.position];
 
   // With Delete to continue, every key typed while typos are waiting is another typo.
   if (round.pending.length > 0) {
     round.mistakes++;
+    round.lastCorrectAt = null;
     if (round.pending.length >= maxPending) {
       round.tripReason = "pileup";
       failRound();
@@ -82,6 +86,9 @@ function handleAttempt(character) {
   const record = (settings.keyStats[target] ??= [0, 0]);
   if (character === target) {
     record[0]++;
+    if (round.lastCorrectAt !== null && now - round.lastCorrectAt <= maxGap) recordTiming(round.lastTyped, target, now - round.lastCorrectAt);
+    round.lastCorrectAt = now;
+    round.lastTyped = target;
     round.correct++;
     round.cells[round.position].classList.add("done");
     round.position++;
@@ -96,6 +103,7 @@ function handleAttempt(character) {
   } else {
     record[1]++;
     round.mistakes++;
+    round.lastCorrectAt = null;
     round.lastWrong = character;
     round.misses.set(target, (round.misses.get(target) ?? 0) + 1);
     round.typoPositions.add(round.position);

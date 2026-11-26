@@ -4,6 +4,8 @@
 // Each focus has a guided course (lessons, each ending in a checkpoint) and a practice library (every drill,
 // grouped in units). The map shows both; the course is what progress and "what next" are about.
 
+const isFluent = (drill) => settings.fluent.includes(drill.id);
+
 function progressOf(list) {
   const done = list.filter(isDone).length;
   return { done, total: list.length, complete: done === list.length };
@@ -94,17 +96,19 @@ const groupKey = (drill) => (drill.lesson ? `lesson-${drill.lesson.id}` : `unit-
 
 function drillTile(drill, number, current) {
   const finished = isDone(drill);
-  const button = element("button", ["drill-tile", finished && "done", drill.checkpoint && "checkpoint"].filter(Boolean).join(" "));
+  const fluent = drill.checkpoint && isFluent(drill);
+  const button = element("button", ["drill-tile", finished && "done", drill.checkpoint && "checkpoint", fluent && "fluent"].filter(Boolean).join(" "));
   button.type = "button";
   const label = drillLabel(drill);
-  button.setAttribute("aria-label", `${label[0].toUpperCase()}${label.slice(1)}: ${drill.title}${finished ? ", complete" : ""}`);
+  button.setAttribute("aria-label", `${label[0].toUpperCase()}${label.slice(1)}: ${drill.title}${fluent ? ", passed at Fluent speed" : finished ? ", complete" : ""}`);
   if (drill === current) button.setAttribute("aria-current", "step");
   button.addEventListener("click", () => chooseDrill(drill.id));
   if (number) button.append(element("span", "drill-tile-number", number));
   if (drill.checkpoint) {
-    button.title = `${drill.title}: a fresh mix of this lesson. Pass with ${passMark}% accuracy.`;
+    button.title = `${drill.title}: a fresh mix of this lesson. Pass with ${passMark}% accuracy; at ${drill.area.fluentWpm} wpm or more it counts as Fluent.`;
     button.style.gridColumn = "span 2";
-    button.append(element("span", "drill-tile-prompt", "Checkpoint"), element("small", "drill-tile-note", `${passMark}% to pass`));
+    button.append(element("span", "drill-tile-prompt", "Checkpoint"),
+      element("small", "drill-tile-note", fluent ? `Fluent · ${drill.area.fluentWpm}+ wpm` : `${passMark}% to pass`));
   } else {
     button.title = `${drill.title}: ${drill.prompt}`;
     // Long prompts span extra columns so they show in full.
@@ -173,7 +177,9 @@ function renderLibrary() {
   const course = progressOf(area.path);
   const percent = Math.round(course.done / course.total * 100);
   get("course-title").textContent = `${area.name} course`;
-  get("course-summary").textContent = `${plural(area.lessons.length, "short lesson")}, each ending in a checkpoint: a fresh mix you pass with ${passMark}% accuracy.`;
+  const fluentCount = area.lessons.filter((lesson) => isFluent(lesson.list.at(-1))).length;
+  get("course-summary").textContent = `${plural(area.lessons.length, "short lesson")}, each ending in a checkpoint: a fresh mix you pass with ${passMark}% accuracy. `
+    + (fluentCount ? `${fluentCount} of ${area.lessons.length} passed at Fluent speed, ${area.fluentWpm} wpm or more.` : `Pass one at ${area.fluentWpm} wpm or more and it counts as Fluent.`);
   get("library-progress-label").textContent = `${course.done} of ${course.total} done`;
   get("library-progress-percent").textContent = `${percent}%`;
   get("library-progress-fill").style.width = `${percent}%`;
@@ -198,7 +204,8 @@ function renderLibrary() {
     const { complete } = progressOf(lesson.list);
     const resume = lesson.list.find((drill) => !isDone(drill));
     return groupCard({
-      key: `lesson-${lesson.id}`, title: `${lesson.number}. ${lesson.name}`, meta: `${plural(lesson.list.length - 1, "drill")} + checkpoint`,
+      key: `lesson-${lesson.id}`, title: `${lesson.number}. ${lesson.name}`,
+      meta: `${plural(lesson.list.length - 1, "drill")} + checkpoint${isFluent(lesson.list.at(-1)) ? " · Fluent" : ""}`,
       list: lesson.list, current, numberOf: (drill) => (drill.checkpoint ? "" : String(drill.step)),
       action: complete ? { label: "Review", drill: lesson.list[0] } : { label: lesson.list.some(isDone) ? "Resume" : "Start", drill: resume }
     });
